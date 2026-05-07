@@ -1,2 +1,5 @@
-# EPI
-The EDGE Platform Interface API
+# EPI Library V3.0
+
+This is a general purpose library written in C++, but with no
+reliance on templates and other advanced C++ features. The
+intention is a lightweight lib biases towards use in game engines.
