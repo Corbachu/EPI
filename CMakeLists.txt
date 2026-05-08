@@ -104,6 +104,8 @@ option(EPI_BUILD_TESTS        "Build EPI unit tests (host builds only)"         
 # ---------------------------------------------------------------------------
 set(EPI_CORE_SOURCES
     epi/arrays.cc
+    epi/archive_stuff/archive.cc
+    epi/archive_stuff/archive_wad.cc
     epi/bytearray.cc
     epi/console.cc
     epi/errors.cc
@@ -120,6 +122,9 @@ set(EPI_CORE_SOURCES
     epi/image_jpeg.cc
     epi/image_png.cc
     epi/image_tga.cc
+    epi/kmq2/epi_q2byteorder.cc
+    epi/kmq2/epi_quake2hunk.cc
+    epi/kmq2/epi_quake2stuff.cc
     epi/lowpass_filter.cc
     epi/math_angle.cc
     epi/math_bbox.cc

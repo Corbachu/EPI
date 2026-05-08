@@ -77,6 +77,7 @@ public:
 	vec2_c() : x(0), y(0) { }
 	vec2_c(float nx, float ny) : x(nx), y(ny) { }
 	vec2_c(const vec2_c& rhs)  : x(rhs.x), y(rhs.y) { }
+	vec2_c(const float *v) : x(v[0]), y(v[1]) { }
 	vec2_c(const ivec_c& rhs)  : x(rhs.x), y(rhs.y) { }
 	vec2_c(const angle_c& ang) : x(ang.getX()), y(ang.getY()) { }
 	vec2_c(const angle_c& ang, float len)
@@ -100,6 +101,10 @@ public:
 	// return parallel distance from (0,0) to the point on the vector
 	// (extended to infinity) which is closest to the given point.
 
+	float *Data() { return &x; }
+	const float *Data() const { return &x; }
+	void CopyTo(float *dest) const { dest[0] = x; dest[1] = y; }
+
 	bool Match(const vec2_c& rhs, float precision = 0.001f);
 	// no equality operators since we're using floating point.
 
@@ -111,6 +116,8 @@ public:
 	vec2_c operator/ (float scale) const;
 
 	float operator* (const vec2_c& rhs) const;  // dot product
+	float& operator[] (int index) { return Data()[index]; }
+	const float& operator[] (int index) const { return Data()[index]; }
 
 	/* ---- modifying operations ---- */
 
@@ -155,6 +162,10 @@ public:
 	// return parallel distance from (0,0,0) to the point on the vector
 	// (extended to infinity) which is closest to the given point.
 
+	float *Data() { return &x; }
+	const float *Data() const { return &x; }
+	void CopyTo(float *dest) const { dest[0] = x; dest[1] = y; dest[2] = z; }
+
 	bool Match(const vec3_c& rhs, float precision = 0.001f);
 	// no equality operators since we're using floating point.
 
@@ -169,6 +180,8 @@ public:
 	vec3_c operator/ (float scale) const;
 
 	float operator* (const vec3_c& rhs) const;  // dot product
+	float& operator[] (int index) { return Data()[index]; }
+	const float& operator[] (int index) const { return Data()[index]; }
 
 	vec3_c Cross(const vec3_c& rhs) const;  // cross product
 	vec3_c Lerp(const vec3_c& rhs, float weight) const;  // cross product
@@ -202,6 +215,10 @@ public:
 
 	float Length() const;
 
+	float *Data() { return &x; }
+	const float *Data() const { return &x; }
+	void CopyTo(float *dest) const { dest[0] = x; dest[1] = y; dest[2] = z; dest[3] = w; }
+
 	bool Match(const vec4_c& rhs, float precision = 0.001f);
 	// no equality operators since we're using floating point.
 
@@ -218,6 +235,8 @@ public:
 	vec4_c operator/ (float scale) const;
 
 	float operator* (const vec4_c& rhs) const;  // dot product
+	float& operator[] (int index) { return Data()[index]; }
+	const float& operator[] (int index) const { return Data()[index]; }
 
 	/* ---- modifying operations ---- */
 

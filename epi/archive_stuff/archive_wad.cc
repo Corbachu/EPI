@@ -28,6 +28,7 @@
 
 #include "asserts.h"
 #include "endianess.h"
+#include "errors.h"
 #include "filesystem.h"
 
 namespace epi
@@ -71,8 +72,8 @@ wadentry_c::wadentry_c(const char *_name, bool _dir, int _flags,
 }
 
 wadentry_c::wadentry_c(const raw_wad_entry_t& raw_ent, int _flags) :
-	position(EPI_LE_U32(raw_ent.start)),
-	size(EPI_LE_U32(raw_ent.length)),
+	position(EPI_LE_U32(raw_ent.pos)),
+	size(EPI_LE_U32(raw_ent.size)),
 	flags(_flags), dir(NULL), wr_data()
 {
 	for (int i = 0; i < 8; i++)
@@ -294,7 +295,7 @@ wadfile_c::~wadfile_c()
 {
 	if (fp)
 	{
-		the_filesystem->Close(fp);
+		delete fp;
 		fp = NULL;
 	}
 
@@ -528,7 +529,7 @@ void wadfile_c::ReadDirectory()
 	if (! fp->Read(&header, sizeof(header)))
 		throw epi::error_c(EPI_ERRGEN_FILEERROR, "Unable to read WAD header", true);
 
-	if (! CheckMagic(header.type))
+	if (! CheckMagic(header.identification))
 		throw epi::error_c(EPI_ERRGEN_FILEERROR, "File is not a WAD", true);
                                                                                             
 	int total   = EPI_LE_U32(header.num_entries);
@@ -566,7 +567,7 @@ void wadfile_c::ReadDirectory()
 
 		FindLevels(tmp_list, total);
 	}
-	catch (error_c)
+	catch (const error_c&)
 	{
 		delete[] tmp_list;
 		throw;
@@ -642,7 +643,7 @@ wadfile_c *wadfile_c::Open(const char *filename, const char *mode)
 	{
 		if (! wad->write_only)
 		{
-			wad->fp = the_filesystem->Open(filename, file_c::ACCESS_READ);
+			wad->fp = FS_Open(filename, file_c::ACCESS_READ);
 
 			if (! wad->fp)
 				throw epi::error_c(EPI_ERRGEN_FILENOTFOUND, "File not found", true);
@@ -650,7 +651,7 @@ wadfile_c *wadfile_c::Open(const char *filename, const char *mode)
 			wad->ReadDirectory();
 		}
 	}
-	catch (error_c)
+	catch (const error_c&)
 	{
 		delete wad;
 		throw;
@@ -669,13 +670,14 @@ void wadfile_c::Close(wadfile_c *wad)
 
 	if (wad->write_only)
 	{
-		file_c *fp = the_filesystem->Open(wad->filename, file_c::ACCESS_WRITE);
+		file_c *fp = FS_Open(wad->filename, file_c::ACCESS_WRITE);
 
 		if (! fp)
 			throw epi::error_c(EPI_ERRGEN_FILENOTFOUND, "Unable to create file ", true);
 
 		//!!!! FIXME: WRITE MODE...
 
+		delete fp;
 		delete wad;
 		return;
 	}
@@ -693,4 +695,3 @@ void wadfile_c::Close(wadfile_c *wad)
 }
 
 }  // namespace epi
-

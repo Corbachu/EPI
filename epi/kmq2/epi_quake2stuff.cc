@@ -32,18 +32,36 @@ int FS_LoadFile (const char *path, void **buffer)
 	char * buff;
 	
 	buff = (char*)malloc(32);
+	if (! buff)
+		return -1;
 	
 	inf = fopen (path,"r");
 	if (inf != NULL) {
 		while(!feof(inf)) {	//resize buffer until it all fits
-			//TODO check success
-			buff = (char*)realloc(buff,len+resize_step+1); //TODO: V701 https://www.viva64.com/en/w/v701/ realloc() possible leak: when realloc() fails in allocating memory, original pointer 'buff' is lost. Consider assigning realloc() to a temporary pointer.
-			len += fread(buff+len,sizeof(char),resize_step, inf); //TODO: V769 https://www.viva64.com/en/w/v769/ The 'buff' pointer in the 'buff + len' expression could be nullptr. In such case, resulting value will be senseless and it should not be used. Check lines: 41, 40.
+			char *resized = (char*)realloc(buff, len + resize_step + 1);
+			if (! resized)
+			{
+				free(buff);
+				fclose(inf);
+				if (buffer)
+					*buffer = NULL;
+				return -1;
+			}
+
+			buff = resized;
+			len += fread(buff+len,sizeof(char),resize_step, inf);
 		}
 		fclose(inf);
 		buff[len] = 0;
-		//TODO check success
-		buff = (char*)realloc(buff,len+1);	//trim excess //TODO: V701 https://www.viva64.com/en/w/v701/ realloc() possible leak: when realloc() fails in allocating memory, original pointer 'buff' is lost. Consider assigning realloc() to a temporary pointer.
+		char *trimmed = (char*)realloc(buff, len + 1);
+		if (trimmed)
+			buff = trimmed;
+	}
+	else
+	{
+		free(buff);
+		buff = NULL;
+		return -1;
 	}
 	
 	if (buffer)
@@ -51,7 +69,7 @@ int FS_LoadFile (const char *path, void **buffer)
 	else
 		free(buff);
 	
-	return len;
+	return (int) len;
 }
 
 //from q_shared.c
