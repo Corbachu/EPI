@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "epi_quake2limits.h"
 
 //q2 filesystem.c
@@ -68,6 +69,14 @@ int FS_LoadFile (const char *path, void **buffer)
 		*buffer = buff;
 	else
 		free(buff);
+
+	if (len > (size_t)INT_MAX)
+	{
+		if (buffer)
+			*buffer = NULL;
+		free(buff);
+		return -1;
+	}
 	
 	return (int) len;
 }

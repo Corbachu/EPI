@@ -19,6 +19,7 @@
 #ifndef __EPI_MATH_VECTOR__
 #define __EPI_MATH_VECTOR__
 
+#include "asserts.h"
 #include "macros.h"
 #include "math_angle.h"
 
@@ -77,7 +78,7 @@ public:
 	vec2_c() : x(0), y(0) { }
 	vec2_c(float nx, float ny) : x(nx), y(ny) { }
 	vec2_c(const vec2_c& rhs)  : x(rhs.x), y(rhs.y) { }
-	vec2_c(const float *v) : x(v[0]), y(v[1]) { }
+	vec2_c(const float *v) : x(0), y(0) { SYS_ASSERT(v); x = v[0]; y = v[1]; }
 	vec2_c(const ivec_c& rhs)  : x(rhs.x), y(rhs.y) { }
 	vec2_c(const angle_c& ang) : x(ang.getX()), y(ang.getY()) { }
 	vec2_c(const angle_c& ang, float len)
@@ -116,8 +117,8 @@ public:
 	vec2_c operator/ (float scale) const;
 
 	float operator* (const vec2_c& rhs) const;  // dot product
-	float& operator[] (int index) { return Data()[index]; }
-	const float& operator[] (int index) const { return Data()[index]; }
+	float& operator[] (int index) { SYS_ASSERT(index >= 0 && index < 2); return Data()[index]; }
+	const float& operator[] (int index) const { SYS_ASSERT(index >= 0 && index < 2); return Data()[index]; }
 
 	/* ---- modifying operations ---- */
 
@@ -148,7 +149,7 @@ public:
 	vec3_c(float nx, float ny, float nz) : x(nx), y(ny), z(nz) { }
 	vec3_c(const vec3_c& rhs) : x(rhs.x), y(rhs.y), z(rhs.z) { }
 	vec3_c(const vec2_c& horiz, float nz) : x(horiz.x), y(horiz.y), z(nz) { }
-	vec3_c(const float * v) : x(v[0]), y(v[1]), z(v[2]) { }
+	vec3_c(const float * v) : x(0), y(0), z(0) { SYS_ASSERT(v); x = v[0]; y = v[1]; z = v[2]; }
 
 	/* ---- read-only operations ---- */
 
@@ -180,8 +181,8 @@ public:
 	vec3_c operator/ (float scale) const;
 
 	float operator* (const vec3_c& rhs) const;  // dot product
-	float& operator[] (int index) { return Data()[index]; }
-	const float& operator[] (int index) const { return Data()[index]; }
+	float& operator[] (int index) { SYS_ASSERT(index >= 0 && index < 3); return Data()[index]; }
+	const float& operator[] (int index) const { SYS_ASSERT(index >= 0 && index < 3); return Data()[index]; }
 
 	vec3_c Cross(const vec3_c& rhs) const;  // cross product
 	vec3_c Lerp(const vec3_c& rhs, float weight) const;  // cross product
@@ -209,7 +210,7 @@ public:
 	vec4_c(float nx, float ny, float nz, float nw) : x(nx), y(ny), z(nz), w(nw) { }
 	vec4_c(const vec4_c& rhs) : x(rhs.x), y(rhs.y), z(rhs.z), w(rhs.w) { }
 	vec4_c(const vec3_c& v3, float nw) : x(v3.x), y(v3.y), z(v3.z), w(nw) { }
-	vec4_c(const float *v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) { }
+	vec4_c(const float *v) : x(0), y(0), z(0), w(0) { SYS_ASSERT(v); x = v[0]; y = v[1]; z = v[2]; w = v[3]; }
 
 	/* ---- read-only operations ---- */
 
@@ -235,8 +236,8 @@ public:
 	vec4_c operator/ (float scale) const;
 
 	float operator* (const vec4_c& rhs) const;  // dot product
-	float& operator[] (int index) { return Data()[index]; }
-	const float& operator[] (int index) const { return Data()[index]; }
+	float& operator[] (int index) { SYS_ASSERT(index >= 0 && index < 4); return Data()[index]; }
+	const float& operator[] (int index) const { SYS_ASSERT(index >= 0 && index < 4); return Data()[index]; }
 
 	/* ---- modifying operations ---- */
 
