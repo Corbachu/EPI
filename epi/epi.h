@@ -26,9 +26,32 @@
 
 #include <cstddef>
 
-#include "epi_dreamcast.h"
-#include "../COAL2/include/coal2.h"
-#define HAVE_PHYSFS 1
+// ---------------------------------------------------------------------------
+// Platform-specific header selection.
+// The order matters: console SDKs define their own macros, check them first.
+// ---------------------------------------------------------------------------
+#if defined(_arch_dreamcast) || defined(DREAMCAST) || defined(PLATFORM_DREAMCAST)
+#  include "epi_dreamcast.h"
+#elif defined(__vita__) || defined(VITA) || defined(PLATFORM_VITA)
+#  include "epi_vita.h"
+#elif defined(_WIN32) || defined(_WIN64)
+#  include "epi_win32.h"
+#elif defined(__APPLE__)
+#  include "epi_macosx.h"
+#elif defined(__linux__) || defined(__unix__)
+#  include "epi_linux.h"
+#else
+#  error "EPI: unsupported platform – add a new epi_<platform>.h"
+#endif
+
+// Optional third-party integrations (defined by build system)
+#ifdef HAVE_COAL2
+#  include "../COAL2/include/coal2.h"
+#endif
+
+#ifdef HAVE_PHYSFS
+// PhysFS integration enabled
+#endif
 
 namespace epi
 {

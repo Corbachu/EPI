@@ -411,6 +411,20 @@ inline fix_c fxdist3(const fix_c& X, const fix_c& Y, const fix_c& Z)
     return fxdist2(fxdist2(X, Y), Z);
 }
 
+// Namespace-scope declarations for trigonometric free functions that are
+// friends of fix_c.  Without these, unqualified lookup in headers that use
+// fxsin/fxcos etc. (e.g. fxp_vector.h) fails to find them because friend
+// declarations inside a class body do not introduce a name into the enclosing
+// namespace for ordinary unqualified lookup.
+fix_c   fxsin (const angle_c& ang);
+fix_c   fxcos (const angle_c& ang);
+fix_c   fxtan (const angle_c& ang);
+angle_c fxatan (const fix_c& X);
+angle_c fxatan2(const fix_c& X, const fix_c& Y);
+fix_c   fxsqrt(const fix_c& X);
+fix_c   fxdist2(const fix_c& X, const fix_c& Y);
+fix_c   fxmuldiv(const fix_c& A, const fix_c& B, const fix_c& C);
+
 }  // namespace epi
 
 #endif /* __EPI_FXP_FIXED_H__ */

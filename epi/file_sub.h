@@ -20,7 +20,9 @@
 #define __EPI_FILE_SUB_H__
 
 #include "file.h"
+#ifdef HAVE_PHYSFS
 #include "../physfs/physfs.h"
+#endif
 
 namespace epi
 {

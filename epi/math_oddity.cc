@@ -91,17 +91,6 @@ int int_sqrt(int value)
     return est;
 }
 
-inline byte ClampByte(int value)
-{
-	if (value < 0)
-		return 0;
-
-	if (value > 255)
-		return 255;
-
-	return value;
-}
-
 } // namespace epi
 
 //--- editor settings ---

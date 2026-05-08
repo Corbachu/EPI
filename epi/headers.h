@@ -18,17 +18,23 @@
 #ifndef __EPI_HEADERS_H__
 #define __EPI_HEADERS_H__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-
+// C standard library (C-linkage wrappers)
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
+#include <cstring>
+#include <cctype>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
 
+// C++ standard library
 #include <string>
+#include <memory>
+#include <algorithm>
+#include <utility>
+#include <functional>
+#include <type_traits>
 
 #endif  /* __EPI_HEADERS_H__ */
 
