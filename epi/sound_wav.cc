@@ -580,7 +580,7 @@ static bool find_chunk(file_c *f, u32_t id)
         if (len < 0)
 			return false;
 
-        pos += sizeof(u32_t) * 2 + len + (len & 1);
+        pos += sizeof(u32_t) * 2 + len + (len & 1);  // RIFF chunks are padded to even byte boundaries.
 
         if (len > 0)
 		{
