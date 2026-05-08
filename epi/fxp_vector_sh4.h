@@ -18,7 +18,9 @@
 
 #pragma once
 #include "fxp_vector.h"
+#if defined(DREAMCAST) && DITD_ENABLE_EPI_SH4_ACCEL
 #include "../FitdLib/System/dc_fastmath.h"
+#endif
 
 // Enable via CMake:
 //   - DITD_ENABLE_EPI_SH4_ACCEL=ON

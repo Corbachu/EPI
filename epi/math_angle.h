@@ -36,6 +36,8 @@
 namespace epi
 {
 
+class fix_c;  // forward declaration (defined in fxp_fixed.h)
+
 class angle_c
 {
 	/* sealed class, value semantics */
@@ -49,6 +51,15 @@ private:
 	angle_c(u32_t _bam, bool xxx) : bam(_bam) { }
 	// xxx is a dummy argument, without it this method's signature
 	// becomes too similiar to the integer constructor below.
+
+	// The fixed-point trigonometric functions (fxsin, fxcos, …) access
+	// angle_c::bam directly for performance; grant them access here.
+	friend fix_c   fxsin (const angle_c& ang);
+	friend fix_c   fxcos (const angle_c& ang);
+	friend fix_c   fxtan (const angle_c& ang);
+	friend fix_c   base_sin(u32_t bam);
+	friend fix_c   base_tan(u32_t bam);
+	friend angle_c base_atan(const fix_c& X);
 
 public:
 	angle_c() : bam(0) { };
