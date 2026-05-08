@@ -65,18 +65,16 @@ int FS_LoadFile (const char *path, void **buffer)
 		return -1;
 	}
 	
+	if (len > (size_t)INT_MAX)
+	{
+		free(buff);
+		return -1;
+	}
+
 	if (buffer)
 		*buffer = buff;
 	else
 		free(buff);
-
-	if (len > (size_t)INT_MAX)
-	{
-		if (buffer)
-			*buffer = NULL;
-		free(buff);
-		return -1;
-	}
 	
 	return (int) len;
 }
