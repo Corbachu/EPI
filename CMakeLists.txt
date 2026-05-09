@@ -144,6 +144,7 @@ set(EPI_CORE_SOURCES
     epi/model_md3.cc
     epi/model_hlmdl.cc
     epi/model_md5.cc
+    epi/model_aitdbody.cc
     epi/mus_2_midi.cc
     epi/path.cc
     epi/sort_cmp.cc

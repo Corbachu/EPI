@@ -24,14 +24,16 @@
 #include "model_md3.h"
 #include "model_hlmdl.h"
 #include "model_md5.h"
+#include "model_aitdbody.h"
 
 namespace epi
 {
 
-model_loader_c *MDL_GetMD2Loader()   { static MD2Loader   l; return &l; }
-model_loader_c *MDL_GetMD3Loader()   { static MD3Loader   l; return &l; }
-model_loader_c *MDL_GetHLMDLLoader() { static HLMDLLoader l; return &l; }
-model_loader_c *MDL_GetMD5Loader()   { static MD5Loader   l; return &l; }
+model_loader_c *MDL_GetMD2Loader()       { static MD2Loader       l; return &l; }
+model_loader_c *MDL_GetMD3Loader()       { static MD3Loader       l; return &l; }
+model_loader_c *MDL_GetHLMDLLoader()     { static HLMDLLoader     l; return &l; }
+model_loader_c *MDL_GetMD5Loader()       { static MD5Loader       l; return &l; }
+model_loader_c *MDL_GetAITDBodyLoader()  { static AITDBodyLoader  l; return &l; }
 
 
 model_data_c *MDL_Load(file_c *f, model_format_e fmt)
@@ -68,10 +70,11 @@ model_data_c *MDL_Load(file_c *f, model_format_e fmt)
 
 	switch (fmt)
 	{
-		case MDL_FORMAT_MD2:   loader = MDL_GetMD2Loader();   break;
-		case MDL_FORMAT_MD3:   loader = MDL_GetMD3Loader();   break;
-		case MDL_FORMAT_HLMDL: loader = MDL_GetHLMDLLoader(); break;
-		case MDL_FORMAT_MD5:   loader = MDL_GetMD5Loader();   break;
+		case MDL_FORMAT_MD2:      loader = MDL_GetMD2Loader();      break;
+		case MDL_FORMAT_MD3:      loader = MDL_GetMD3Loader();      break;
+		case MDL_FORMAT_HLMDL:    loader = MDL_GetHLMDLLoader();    break;
+		case MDL_FORMAT_MD5:      loader = MDL_GetMD5Loader();      break;
+		case MDL_FORMAT_AITDBODY: loader = MDL_GetAITDBodyLoader(); break;
 		default:
 			I_Warning("MDL_Load: unknown format id %d\n", (int)fmt);
 			return NULL;

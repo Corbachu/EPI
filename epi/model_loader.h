@@ -42,11 +42,12 @@ namespace epi
 //------------------------------------------------------------------------
 enum model_format_e
 {
-	MDL_FORMAT_AUTO  = 0,  // detect from file magic / header
-	MDL_FORMAT_MD2   = 1,  // Quake 2 (IDP2, v8)
-	MDL_FORMAT_MD3   = 2,  // Quake 3 (IDP3, v15)
-	MDL_FORMAT_HLMDL = 3,  // Half-Life 1 MDL (IDST, v10)
-	MDL_FORMAT_MD5   = 4,  // Doom 3 MD5 (text, MD5Version 10)
+	MDL_FORMAT_AUTO     = 0,  // detect from file magic / header
+	MDL_FORMAT_MD2      = 1,  // Quake 2 (IDP2, v8)
+	MDL_FORMAT_MD3      = 2,  // Quake 3 (IDP3, v15)
+	MDL_FORMAT_HLMDL    = 3,  // Half-Life 1 MDL (IDST, v10)
+	MDL_FORMAT_MD5      = 4,  // Doom 3 MD5 (text, MD5Version 10)
+	MDL_FORMAT_AITDBODY = 5,  // Alone in the Dark body (raw PAK entry)
 };
 
 //------------------------------------------------------------------------
@@ -93,6 +94,7 @@ model_loader_c *MDL_GetMD2Loader();
 model_loader_c *MDL_GetMD3Loader();
 model_loader_c *MDL_GetHLMDLLoader();
 model_loader_c *MDL_GetMD5Loader();
+model_loader_c *MDL_GetAITDBodyLoader();
 
 } // namespace epi
 
