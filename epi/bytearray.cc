@@ -153,6 +153,41 @@ void bytearray_c::Append(const void *data, int count)
 	// ASSERT(space >= 0);
 }
 
+void bytearray_c::AppendU16(u16_t value)
+{
+	// Little-endian byte order
+	byte lo = (byte)(value & 0xFF);
+	byte hi = (byte)((value >> 8) & 0xFF);
+	Append(lo);
+	Append(hi);
+}
+
+void bytearray_c::AppendS16(s16_t value)
+{
+	AppendU16((u16_t)value);
+}
+
+void bytearray_c::AppendU32(u32_t value)
+{
+	AppendU16((u16_t)(value & 0xFFFF));
+	AppendU16((u16_t)((value >> 16) & 0xFFFF));
+}
+
+void bytearray_c::AppendS32(s32_t value)
+{
+	AppendU32((u32_t)value);
+}
+
+void bytearray_c::Reserve(int capacity)
+{
+	int current = length + space;
+	if (capacity <= current)
+		return;
+
+	// Grow to the requested capacity, preserving current length
+	Resize(length, capacity - length);
+}
+
 }  // namespace epi
 
 //--- editor settings ---

@@ -19,8 +19,30 @@
 #include "epi.h"
 #include "math_bbox.h"
 
+#include <cstdio>
+
 namespace epi
 {
+
+std::string bbox2_c::ToStr(int precision) const
+{
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "[(%.*f,%.*f)..(%.*f,%.*f)]",
+             precision, (double)lo.x, precision, (double)lo.y,
+             precision, (double)hi.x, precision, (double)hi.y);
+    return buf;
+}
+
+std::string bbox3_c::ToStr(int precision) const
+{
+    char buf[384];
+    snprintf(buf, sizeof(buf),
+             "[(%.*f,%.*f,%.*f)..(%.*f,%.*f,%.*f)]",
+             precision, (double)lo.x, precision, (double)lo.y, precision, (double)lo.z,
+             precision, (double)hi.x, precision, (double)hi.y, precision, (double)hi.z);
+    return buf;
+}
 
 int bbox3_c::IntersectPlane(vec3_c loc, vec3_c face) const
 {

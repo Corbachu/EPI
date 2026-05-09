@@ -140,6 +140,7 @@ set(EPI_CORE_SOURCES
     epi/mersenne_twist.cc
     epi/mus_2_midi.cc
     epi/path.cc
+    epi/sort_cmp.cc
     epi/sound_data.cc
     epi/sound_gather.cc
     epi/sound_loader.cc
@@ -150,6 +151,7 @@ set(EPI_CORE_SOURCES
     epi/str_format.cc
     epi/timestamp.cc
     epi/utility.cc
+    epi/vector_format.cc
     # epi/utility_misc.cc  -- excluded: has engine-level dependencies (StringDup, AssertFail)
 )
 

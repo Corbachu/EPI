@@ -24,6 +24,8 @@
 #include "epi.h"
 #include "endianess.h"
 
+#include <cmath>
+
 #include "sound_wav.h"
 #include "sound_gather.h"
 
@@ -740,6 +742,37 @@ bool WAV_LoadEx(sound_data_c *buf, file_c *f, bool preserve_stereo)
 bool WAV_Load(sound_data_c *buf, file_c *f)
 {
     return WAV_LoadEx(buf, f, false);
+}
+
+void WAV_ApplyLowPass(sound_data_c *buf, float cutoff_hz)
+{
+	if (!buf || buf->length <= 0 || buf->freq <= 0)
+		return;
+
+	const float dt    = 1.0f / (float)buf->freq;
+	const float ePow  = 1.0f - expf(-dt * 2.0f * (float)M_PI * cutoff_hz);
+
+	// Left channel (always present)
+	if (buf->data_L)
+	{
+		float out = (float)buf->data_L[0];
+		for (int i = 1; i < buf->length; i++)
+		{
+			out += ((float)buf->data_L[i] - out) * ePow;
+			buf->data_L[i] = (s16_t)(int)out;
+		}
+	}
+
+	// Right channel (only for true stereo)
+	if (buf->mode == SBUF_Stereo && buf->data_R && buf->data_R != buf->data_L)
+	{
+		float out = (float)buf->data_R[0];
+		for (int i = 1; i < buf->length; i++)
+		{
+			out += ((float)buf->data_R[i] - out) * ePow;
+			buf->data_R[i] = (s16_t)(int)out;
+		}
+	}
 }
 
 } // namespace epi

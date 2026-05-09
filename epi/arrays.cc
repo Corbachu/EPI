@@ -65,8 +65,16 @@ namespace epi
 	{
 		if (array_entries >= array_max_entries)
 		{
-			// FIXME: Size should throw an error
-			if (!Size(array_entries?(array_entries*2):INITIAL_ARRAY_SIZE))
+			// Use 1.5× growth after initial doubling to reduce waste
+			int new_cap;
+			if (array_entries == 0)
+				new_cap = INITIAL_ARRAY_SIZE;
+			else if (array_entries < 64)
+				new_cap = array_entries * 2;
+			else
+				new_cap = array_entries + (array_entries >> 1);  // 1.5×
+
+			if (!Size(new_cap))
 	   			return NULL;
 		}	
 	
@@ -104,7 +112,15 @@ namespace epi
 
 		if (array_entries >= array_max_entries)
 		{
-       		if (!Size(array_entries?(array_entries*2):INITIAL_ARRAY_SIZE))
+			int new_cap;
+			if (array_entries == 0)
+				new_cap = INITIAL_ARRAY_SIZE;
+			else if (array_entries < 64)
+				new_cap = array_entries * 2;
+			else
+				new_cap = array_entries + (array_entries >> 1);
+
+       		if (!Size(new_cap))
            		return -1;
 		}
 
@@ -264,6 +280,19 @@ namespace epi
 	bool array_c::Trim(void)
 	{
 		return Size(array_entries);
+	}
+
+	//
+	// array_c::Reserve
+	//
+	// Ensures the backing store can hold at least 'capacity' entries
+	// without reallocation.  Does not change the element count.
+	//
+	bool array_c::Reserve(int capacity)
+	{
+		if (capacity <= array_max_entries)
+			return true;
+		return Size(capacity);
 	}
 
 } // namespace epi

@@ -1,8 +1,8 @@
 //----------------------------------------------------------------------------
-//  VOC Format Sound Loading
+//  EPI Sort & Compare Utilities  (implementation)
 //----------------------------------------------------------------------------
 //
-//  Copyright (c) 2026  The EDGE Team.
+//  Copyright (c) 2024-2026  The EDGE Team.
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -15,28 +15,18 @@
 //  GNU General Public License for more details.
 //
 //----------------------------------------------------------------------------
+//
+// The sort_cmp module is almost entirely header-only (template-based).
+// This .cc file exists to satisfy the build system's source-file list and
+// to provide the non-template helper implementations.
+//
+//----------------------------------------------------------------------------
 
-#ifndef __EPI_SOUND_VOC_H__
-#define __EPI_SOUND_VOC_H__
+#include "epi.h"
+#include "sort_cmp.h"
 
-#include "file.h"
-#include "sound_data.h"
-
-namespace epi
-{
-
-bool VOC_Load(sound_data_c *buf, file_c *f);
-// Decode the first Creative Voice data block from the given file stream,
-// storing the results in signed 16-bit PCM.
-
-void VOC_ApplyLowPass(sound_data_c *buf, float cutoff_hz);
-// Apply a one-pole IIR low-pass filter to the decoded PCM data in-place.
-// cutoff_hz is the -3 dB corner frequency; the sample rate is taken from
-// buf->freq.
-
-} // namespace epi
-
-#endif /* __EPI_SOUND_VOC_H__ */
+// All public API lives in the header as inline / template functions.
+// Nothing additional needs to be defined here.
 
 //--- editor settings ---
 // vi:ts=4:sw=4:noexpandtab

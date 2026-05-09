@@ -147,6 +147,22 @@ public:
 	// will be stored in 'ity' when given.
 	void Swirl(int leveltime, int thickness);
 	// SMMU-style swirling
+
+	void Blit(int src_x, int src_y, int src_w, int src_h,
+	          image_data_c *dst, int dst_x, int dst_y);
+	// Copy a rectangular region of this image into another image at
+	// (dst_x, dst_y).  Both images must have the same bpp.
+	// Out-of-bounds coordinates are clamped silently.
+
+	void FlipHorizontal();
+	// Mirror the image left-to-right.
+
+	void FlipVertical();
+	// Alias for Invert() – flip the image up-side-down.
+
+	void Premultiply();
+	// Multiply each RGB channel by the alpha value (for pre-multiplied
+	// alpha compositing).  Image must be RGBA (bpp == 4).
 };
 
 // IMAGE LOADING FLAGS

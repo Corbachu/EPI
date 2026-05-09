@@ -18,6 +18,7 @@
 
 #include "epi.h"
 
+#include <cmath>
 #include <cstring>
 
 #include "sound_voc.h"
@@ -94,6 +95,25 @@ bool VOC_Load(sound_data_c *buf, file_c *f)
 
 	delete[] data;
 	return true;
+}
+
+void VOC_ApplyLowPass(sound_data_c *buf, float cutoff_hz)
+{
+	if (!buf || buf->length <= 0 || buf->freq <= 0)
+		return;
+
+	const float dt   = 1.0f / (float)buf->freq;
+	const float ePow = 1.0f - expf(-dt * 2.0f * (float)M_PI * cutoff_hz);
+
+	if (buf->data_L)
+	{
+		float out = (float)buf->data_L[0];
+		for (int i = 1; i < buf->length; i++)
+		{
+			out += ((float)buf->data_L[i] - out) * ePow;
+			buf->data_L[i] = (s16_t)(int)out;
+		}
+	}
 }
 
 } // namespace epi

@@ -60,6 +60,17 @@ public:
 	mat3_c& operator*= (float scale);
 	mat3_c& operator/= (float scale);
 
+	// Factory methods
+	static mat3_c Identity();
+	static mat3_c Scale(float sx, float sy);
+	static mat3_c Rotate(float radians);
+	static mat3_c Translation(float tx, float ty);
+
+	float Det() const;
+	bool Inverse(mat3_c& out) const;
+	// Compute the inverse of this matrix, storing it in 'out'.
+	// Returns false if the matrix is singular (not invertible).
+
 private:
 	inline void swap(int i, int j)
 	{
@@ -110,6 +121,22 @@ public:
 
 	mat4_c& operator*= (float scale);
 	mat4_c& operator/= (float scale);
+
+	// Factory methods
+	static mat4_c Identity();
+	static mat4_c Scale(float sx, float sy, float sz);
+	static mat4_c Translation(float tx, float ty, float tz);
+	static mat4_c Translation(const vec3_c& t);
+	static mat4_c RotateX(float radians);
+	static mat4_c RotateY(float radians);
+	static mat4_c RotateZ(float radians);
+	static mat4_c Perspective(float fov_y_rad, float aspect, float near_z, float far_z);
+	static mat4_c LookAt(const vec3_c& eye, const vec3_c& center, const vec3_c& up);
+
+	float Det() const;
+	bool Inverse(mat4_c& out) const;
+	// Compute the inverse of this matrix storing it in 'out'.
+	// Returns false if the matrix is singular.
 
 private:
 	inline void swap(int i, int j)

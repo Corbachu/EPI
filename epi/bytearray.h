@@ -69,6 +69,16 @@ namespace epi
 		void Append(byte value);
 		void Append(const void *data, int count);
 
+		// Convenience appenders for little-endian integer types.
+		void AppendU16(u16_t value);
+		void AppendS16(s16_t value);
+		void AppendU32(u32_t value);
+		void AppendS32(s32_t value);
+
+		// Ensure the backing store can hold at least 'capacity' bytes
+		// total (length + space) without reallocation.
+		void Reserve(int capacity);
+
 		void operator+= (byte value) { Append(value); }
 
 		byte *GetRawBase() const { return array; }

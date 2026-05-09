@@ -51,6 +51,18 @@ public:
 	inline bool Touches(const xbox2_c& other) const;
 	// checks if two bounding boxes intersect.  Returns false when only
 	// touching, i.e. the intersected volume must be > 0.
+
+	inline xvec2_c Center() const;
+	// returns the centre point of the bounding box.
+
+	inline fix_c Width()  const;
+	inline fix_c Height() const;
+	inline fix_c Area()   const;
+
+	inline xbox2_c Intersect(const xbox2_c& other) const;
+	// returns the intersection of the two boxes.
+
+	inline bool IsDegenerate() const;
 	
 	std::string ToStr(int precision = 1) const;
 
@@ -99,6 +111,17 @@ public:
 	// checks if two bounding boxes intersect.  Returns false when only
 	// touching, i.e. the intersected volume must be > 0.
 	inline bool Touches(const xbox3_c& other) const;
+
+	inline xvec3_c Center() const;
+	// returns the centre point of the bounding box.
+
+	inline fix_c Width()  const;  // X extent
+	inline fix_c Depth()  const;  // Y extent
+	inline fix_c Height() const;  // Z extent
+
+	inline xbox3_c Intersect(const xbox3_c& other) const;
+
+	inline bool IsDegenerate() const;
 
 	std::string ToStr(int precision = 1) const;
 
@@ -210,6 +233,30 @@ inline xbox2_c& xbox2_c::Enlarge(const fix_c& radius)
 	return *this;
 }
 
+inline xvec2_c xbox2_c::Center() const
+{
+	return xvec2_c((lo.x + hi.x) * fix_c(1, 2), (lo.y + hi.y) * fix_c(1, 2));
+}
+
+inline fix_c xbox2_c::Width()  const { return hi.x - lo.x; }
+inline fix_c xbox2_c::Height() const { return hi.y - lo.y; }
+inline fix_c xbox2_c::Area()   const { return Width() * Height(); }
+
+inline bool xbox2_c::IsDegenerate() const
+{
+	return (hi.x <= lo.x || hi.y <= lo.y);
+}
+
+inline xbox2_c xbox2_c::Intersect(const xbox2_c& other) const
+{
+	xbox2_c result;
+	result.lo.x = (lo.x > other.lo.x) ? lo.x : other.lo.x;
+	result.lo.y = (lo.y > other.lo.y) ? lo.y : other.lo.y;
+	result.hi.x = (hi.x < other.hi.x) ? hi.x : other.hi.x;
+	result.hi.y = (hi.y < other.hi.y) ? hi.y : other.hi.y;
+	return result;
+}
+
 //------------------------------------------------------------------------
 
 inline xbox3_c::xbox3_c(const xvec3_c& point) : lo(point), hi(point)
@@ -308,6 +355,34 @@ inline xbox3_c& xbox3_c::Enlarge(const fix_c& horiz_R, const fix_c& vert_R)
 	hi.x += horiz_R; hi.y += horiz_R; hi.z += vert_R;
 
 	return *this;
+}
+
+inline xvec3_c xbox3_c::Center() const
+{
+	return xvec3_c((lo.x + hi.x) * fix_c(1, 2),
+	               (lo.y + hi.y) * fix_c(1, 2),
+	               (lo.z + hi.z) * fix_c(1, 2));
+}
+
+inline fix_c xbox3_c::Width()  const { return hi.x - lo.x; }
+inline fix_c xbox3_c::Depth()  const { return hi.y - lo.y; }
+inline fix_c xbox3_c::Height() const { return hi.z - lo.z; }
+
+inline bool xbox3_c::IsDegenerate() const
+{
+	return (hi.x <= lo.x || hi.y <= lo.y || hi.z <= lo.z);
+}
+
+inline xbox3_c xbox3_c::Intersect(const xbox3_c& other) const
+{
+	xbox3_c result;
+	result.lo.x = (lo.x > other.lo.x) ? lo.x : other.lo.x;
+	result.lo.y = (lo.y > other.lo.y) ? lo.y : other.lo.y;
+	result.lo.z = (lo.z > other.lo.z) ? lo.z : other.lo.z;
+	result.hi.x = (hi.x < other.hi.x) ? hi.x : other.hi.x;
+	result.hi.y = (hi.y < other.hi.y) ? hi.y : other.hi.y;
+	result.hi.z = (hi.z < other.hi.z) ? hi.z : other.hi.z;
+	return result;
 }
 
 }  // namespace epi

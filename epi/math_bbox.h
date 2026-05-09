@@ -50,7 +50,26 @@ public:
 	inline bool DoesIntersect(const bbox2_c& other) const;
 	// checks if two bounding boxes intersect.  Returns false when only
 	// touching, i.e. the intersected volume must be > 0.
-	
+
+	inline vec2_c Center() const;
+	// returns the centre point of the bounding box.
+
+	inline float Width()  const;
+	inline float Height() const;
+	inline float Area()   const;
+
+	inline bbox2_c Intersect(const bbox2_c& other) const;
+	// returns the intersection of two bounding boxes.
+	// Result is valid (non-degenerate) only when DoesIntersect() is true.
+
+	inline bbox2_c Scaled(float sx, float sy) const;
+	// returns a new bbox whose extents are multiplied by the given scale.
+
+	inline bool IsDegenerate() const;
+	// true when the box has zero or negative area.
+
+	std::string ToStr(int precision = 2) const;
+
 	/* ---- modifying operations ---- */
 
 	bbox2_c& operator= (const bbox2_c& rhs);
@@ -95,6 +114,22 @@ public:
 	inline bool DoesIntersect(const bbox3_c& other) const;
 	// checks if two bounding boxes intersect.  Returns false when only
 	// touching, i.e. the intersected volume must be > 0.
+
+	inline vec3_c Center() const;
+	// returns the centre point of the bounding box.
+
+	inline float Width()  const;  // extent on X axis
+	inline float Depth()  const;  // extent on Y axis
+	inline float Height() const;  // extent on Z axis
+	inline float Volume() const;
+
+	inline bbox3_c Intersect(const bbox3_c& other) const;
+
+	inline bbox3_c Scaled(float sx, float sy, float sz) const;
+
+	inline bool IsDegenerate() const;
+
+	std::string ToStr(int precision = 2) const;
 
 	enum
 	{
@@ -210,6 +245,41 @@ inline bbox2_c& bbox2_c::Enlarge(float radius)
 	return *this;
 }
 
+inline vec2_c bbox2_c::Center() const
+{
+	return vec2_c((lo.x + hi.x) * 0.5f, (lo.y + hi.y) * 0.5f);
+}
+
+inline float bbox2_c::Width()  const { return hi.x - lo.x; }
+inline float bbox2_c::Height() const { return hi.y - lo.y; }
+inline float bbox2_c::Area()   const { return Width() * Height(); }
+
+inline bool bbox2_c::IsDegenerate() const
+{
+	return (hi.x <= lo.x || hi.y <= lo.y);
+}
+
+inline bbox2_c bbox2_c::Intersect(const bbox2_c& other) const
+{
+	bbox2_c result;
+	result.lo.x = (lo.x > other.lo.x) ? lo.x : other.lo.x;
+	result.lo.y = (lo.y > other.lo.y) ? lo.y : other.lo.y;
+	result.hi.x = (hi.x < other.hi.x) ? hi.x : other.hi.x;
+	result.hi.y = (hi.y < other.hi.y) ? hi.y : other.hi.y;
+	return result;
+}
+
+inline bbox2_c bbox2_c::Scaled(float sx, float sy) const
+{
+	vec2_c c = Center();
+	float hw = Width()  * 0.5f * sx;
+	float hh = Height() * 0.5f * sy;
+	bbox2_c result;
+	result.lo = vec2_c(c.x - hw, c.y - hh);
+	result.hi = vec2_c(c.x + hw, c.y + hh);
+	return result;
+}
+
 //------------------------------------------------------------------------
 
 inline bbox3_c::bbox3_c(const vec3_c& point) : lo(point), hi(point)
@@ -304,6 +374,47 @@ inline bbox3_c& bbox3_c::Enlarge(float horiz_R, float vert_R)
 	hi.z += vert_R;
 
 	return *this;
+}
+
+inline vec3_c bbox3_c::Center() const
+{
+	return vec3_c((lo.x + hi.x) * 0.5f,
+	              (lo.y + hi.y) * 0.5f,
+	              (lo.z + hi.z) * 0.5f);
+}
+
+inline float bbox3_c::Width()  const { return hi.x - lo.x; }
+inline float bbox3_c::Depth()  const { return hi.y - lo.y; }
+inline float bbox3_c::Height() const { return hi.z - lo.z; }
+inline float bbox3_c::Volume() const { return Width() * Depth() * Height(); }
+
+inline bool bbox3_c::IsDegenerate() const
+{
+	return (hi.x <= lo.x || hi.y <= lo.y || hi.z <= lo.z);
+}
+
+inline bbox3_c bbox3_c::Intersect(const bbox3_c& other) const
+{
+	bbox3_c result;
+	result.lo.x = (lo.x > other.lo.x) ? lo.x : other.lo.x;
+	result.lo.y = (lo.y > other.lo.y) ? lo.y : other.lo.y;
+	result.lo.z = (lo.z > other.lo.z) ? lo.z : other.lo.z;
+	result.hi.x = (hi.x < other.hi.x) ? hi.x : other.hi.x;
+	result.hi.y = (hi.y < other.hi.y) ? hi.y : other.hi.y;
+	result.hi.z = (hi.z < other.hi.z) ? hi.z : other.hi.z;
+	return result;
+}
+
+inline bbox3_c bbox3_c::Scaled(float sx, float sy, float sz) const
+{
+	vec3_c c = Center();
+	float hx = Width()  * 0.5f * sx;
+	float hy = Depth()  * 0.5f * sy;
+	float hz = Height() * 0.5f * sz;
+	bbox3_c result;
+	result.lo = vec3_c(c.x - hx, c.y - hy, c.z - hz);
+	result.hi = vec3_c(c.x + hx, c.y + hy, c.z + hz);
+	return result;
 }
 
 }  // namespace epi
