@@ -254,12 +254,18 @@ void RumbleStop()
 
 static maple_device_t* FindVMU()
 {
-    // VMUs live on sub-ports: iterate through all maple devices
+    // VMUs live on sub-ports.  maple_enum_dev(port, unit) uses a 0-based unit
+    // index where unit=0 is the main device and unit=1..4 are sub-peripherals.
+    // A VMU attached to a controller's first sub-slot is unit=1.
     for (int port = 0; port < 4; port++)
     {
-        maple_device_t* dev = maple_enum_dev(port, 1);  // sub-port 0
-        if (dev && (dev->info.functions & MAPLE_FUNC_LCD))
-            return dev;
+        // Check both sub-peripheral slots (units 1 and 2)
+        for (int unit = 1; unit <= 2; unit++)
+        {
+            maple_device_t* dev = maple_enum_dev(port, unit);
+            if (dev && (dev->info.functions & MAPLE_FUNC_LCD))
+                return dev;
+        }
     }
     return nullptr;
 }
@@ -351,11 +357,13 @@ int VMUGetFreeBlocks()
     if (!dev)
         return -1;
 
-    // Query the memory card directory to count free entries.
-    // A full implementation queries the FAT; here we return a conservative
-    // estimate via the device info if available.
+    // Reading the VMU FAT to count free blocks requires issuing a
+    // MAPLE_FUNC_MEMCARD read command and parsing the allocation table.
+    // This is non-trivial to do safely in a polling context without a
+    // dedicated thread, so we return -1 here to indicate "not implemented".
+    // Callers should treat -1 as unknown / unavailable rather than full.
     (void)dev;
-    return 0;  // placeholder – real count requires FAT traversal
+    return -1;
 }
 
 // ---------------------------------------------------------------------------

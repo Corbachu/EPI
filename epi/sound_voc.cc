@@ -102,6 +102,9 @@ void VOC_ApplyLowPass(sound_data_c *buf, float cutoff_hz)
 	if (!buf || buf->length <= 0 || buf->freq <= 0)
 		return;
 
+	// VOC blocks are always mono (Creative Voice File format only encodes mono
+	// PCM in block type 1), so only data_L needs processing.  For safety,
+	// also apply to data_R when present and distinct (future stereo blocks).
 	const float dt   = 1.0f / (float)buf->freq;
 	const float ePow = 1.0f - expf(-dt * 2.0f * (float)M_PI * cutoff_hz);
 
@@ -112,6 +115,17 @@ void VOC_ApplyLowPass(sound_data_c *buf, float cutoff_hz)
 		{
 			out += ((float)buf->data_L[i] - out) * ePow;
 			buf->data_L[i] = (s16_t)(int)out;
+		}
+	}
+
+	// Handle true stereo buffers (data_R is distinct from data_L)
+	if (buf->mode == SBUF_Stereo && buf->data_R && buf->data_R != buf->data_L)
+	{
+		float out = (float)buf->data_R[0];
+		for (int i = 1; i < buf->length; i++)
+		{
+			out += ((float)buf->data_R[i] - out) * ePow;
+			buf->data_R[i] = (s16_t)(int)out;
 		}
 	}
 }
