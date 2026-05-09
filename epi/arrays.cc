@@ -65,7 +65,9 @@ namespace epi
 	{
 		if (array_entries >= array_max_entries)
 		{
-			// Use 1.5× growth after initial doubling to reduce waste
+			// Use 1.5× growth after the initial doubling phase to reduce
+			// memory waste while still maintaining amortized O(1) append.
+			// Small arrays (< 64 entries) double as usual for fast ramp-up.
 			int new_cap;
 			if (array_entries == 0)
 				new_cap = INITIAL_ARRAY_SIZE;

@@ -79,7 +79,7 @@ void strbox_c::Copy(strbox_c &src)
 	memcpy(data, src.data, sizeof(char)*datasize);
 	memcpy(strs, src.strs, sizeof(char*)*numstrs);
 	
-	int offset = (int)(data - src.data);
+	ptrdiff_t offset = data - src.data;
 	for (int i=0; i<numstrs; i++)
 	{
 		if (strs[i])
