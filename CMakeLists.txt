@@ -138,6 +138,12 @@ set(EPI_CORE_SOURCES
     epi/math_vector.cc
     epi/memmanager.cc
     epi/mersenne_twist.cc
+    epi/model_data.cc
+    epi/model_loader.cc
+    epi/model_md2.cc
+    epi/model_md3.cc
+    epi/model_hlmdl.cc
+    epi/model_md5.cc
     epi/mus_2_midi.cc
     epi/path.cc
     epi/sort_cmp.cc
