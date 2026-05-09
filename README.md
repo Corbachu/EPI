@@ -151,22 +151,109 @@ if (epi::HasExtraMemoryPool()) {
 
 ---
 
+## Timer / Framerate API
+
+```cpp
+#include "timer_utility.h"
+
+epi::TimerInit(35);                 // 35 tics/sec (classic Doom rate)
+
+while (running) {
+    epi::TimerTick();               // advance clock once per iteration
+
+    float dt  = epi::GetDeltaTime();// seconds since last TimerTick()
+    float fps = epi::GetFPS();      // rolling 16-frame FPS average
+
+    // Fixed-timestep simulation at the configured tic rate:
+    while (epi::GetPendingTics() > 0) {
+        epi::ConsumeTic();
+        UpdateGame();
+    }
+
+    RenderFrame(dt);
+    epi::LimitFPS(60);              // cap render rate to 60 fps
+}
+```
+
+| Function           | Returns                                  |
+|--------------------|------------------------------------------|
+| `GetTimeMS()`      | `u32_t` – milliseconds since init        |
+| `GetTimeUS()`      | `u64_t` – microseconds since init        |
+| `GetTic()`         | `int`   – total elapsed tics             |
+| `GetPendingTics()` | `int`   – tics not yet consumed          |
+| `GetDeltaTime()`   | `float` – seconds since last `TimerTick` |
+| `GetFPS()`         | `float` – rolling 16-frame average FPS   |
+
+---
+
+## 3D Model Loading
+
+EPI supports several 3D model formats through a common `model_data_c`
+container (see `model_data.h`):
+
+| Format                        | Loader class      | `model_format_e` constant |
+|-------------------------------|-------------------|---------------------------|
+| Quake 2 MD2                   | `MD2Loader`       | `MDL_FORMAT_MD2`          |
+| Quake 3 MD3                   | `MD3Loader`       | `MDL_FORMAT_MD3`          |
+| Half-Life 1 MDL (studio)      | `HLMDLLoader`     | `MDL_FORMAT_HLMDL`        |
+| Doom 3 MD5                    | `MD5Loader`       | `MDL_FORMAT_MD5`          |
+| Alone in the Dark body        | `AITDBodyLoader`  | `MDL_FORMAT_AITDBODY`     |
+
+### MD2 animation interpolation
+
+```cpp
+#include "model_md2.h"
+
+// Locate the "run" clip by frame-name prefix.
+int first, last;
+epi::MD2_FindFrameRange(mdl, "run", first, last);
+
+// Create a looping playback state.
+epi::MD2AnimState state(first, last, /*fps=*/10.0f, /*loop=*/true);
+
+// Each render frame:
+std::vector<epi::model_vert_c> interp_verts;
+epi::MD2_LerpFrame(mdl, /*body=*/0, state, dt, interp_verts);
+// … render interp_verts …
+```
+
+### AITD body skin textures
+
+```cpp
+#include "model_aitdbody.h"
+
+auto *loader = static_cast<epi::AITDBodyLoader *>(
+    epi::MDL_GetAITDBodyLoader());
+
+// Supply the 256-entry RGB palette from the game's resource archive.
+loader->SetPalette(palette_rgb768);   // 768 bytes: R G B × 256
+
+epi::model_data_c *mdl = epi::MDL_Load(body_file,
+                                        epi::MDL_FORMAT_AITDBODY);
+// Flat-colour polygons   → skins[i].name == "aitd:color:N"
+// Textured polygons (9/10) → skins[i].name == "aitd:tex:N:T"
+```
+
+---
+
 ## Module Overview
 
-| Module              | Files                               | Description                              |
-|---------------------|-------------------------------------|------------------------------------------|
-| Platform backend    | `epi_dreamcast.*`, `epi_vita.*`, …  | Init/Shutdown + dual-memory allocator    |
-| Input               | `input.h`, `input_dreamcast.*`, `input_vita.*` | Cross-platform input abstraction |
-| Memory manager      | `memmanager.*`, `epi_dual_memory.h` | Slab allocator + dual-pool helpers       |
-| Fixed-point math    | `fxp_*.h/cc`, `fxp_vector_sh4.h`   | SH-4-accelerated fixed-point math        |
-| Image loading       | `image_*.h/cc`, `stb_image.*`       | PNG, JPEG, TGA, KMG image codecs         |
-| Sound               | `sound_*.h/cc`                      | WAV, VOC, MUS→MIDI conversion            |
-| Archives            | `archive_stuff/*`                   | WAD archive inspection and editing APIs  |
-| Legacy id helpers   | `kmq2/*`                            | Quake II byte-order, hunk, and parsing helpers |
-| Containers          | `arrays.*`, `tarray.h`, `pri_heap.*` | Lightweight collections                  |
-| Math                | `math_*.h/cc`                       | Vectors, matrices, quaternions, colour   |
-| Render helpers      | `rgl_vertex.h`                      | Generic vertex storage for GL pipelines  |
-| Filesystem          | `filesystem.*`, `file.*`, `path.*`  | Platform-abstracted file I/O             |
+| Module              | Files                                   | Description                              |
+|---------------------|-----------------------------------------|------------------------------------------|
+| Platform backend    | `epi_dreamcast.*`, `epi_vita.*`, …      | Init/Shutdown + dual-memory allocator    |
+| Input               | `input.h`, `input_dreamcast.*`, `input_vita.*` | Cross-platform input abstraction  |
+| Memory manager      | `memmanager.*`, `epi_dual_memory.h`     | Slab allocator + dual-pool helpers       |
+| Fixed-point math    | `fxp_*.h/cc`, `fxp_vector_sh4.h`       | SH-4-accelerated fixed-point math        |
+| Image loading       | `image_*.h/cc`, `stb_image.*`           | PNG, JPEG, TGA, KMG image codecs         |
+| Sound               | `sound_*.h/cc`                          | WAV, VOC, MUS→MIDI conversion            |
+| Archives            | `archive.*`, `archive_wad.*`            | WAD archive inspection and editing APIs  |
+| Timer / framerate   | `timer_utility.*`                       | ms/µs/tics, delta-time, FPS, frame limiter |
+| 3D models           | `model_*.h/cc`                          | MD2 (+ interpolation), MD3, HLMDL, MD5, AITD body |
+| Legacy id helpers   | `kmq2/*`                                | Quake II byte-order, hunk, and parsing helpers |
+| Containers          | `arrays.*`, `tarray.h`, `pri_heap.*`    | Lightweight collections                  |
+| Math                | `math_*.h/cc`                           | Vectors, matrices, quaternions, colour   |
+| Render helpers      | `rgl_vertex.h`                          | Generic vertex storage for GL pipelines  |
+| Filesystem          | `filesystem.*`, `file.*`, `path.*`      | Platform-abstracted file I/O             |
 
 ---
 

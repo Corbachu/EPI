@@ -49,6 +49,80 @@ public:
 	virtual const char *FormatName() const override { return "MD2"; }
 };
 
+// ---------------------------------------------------------------------------
+// MD2 frame interpolation helpers
+// ---------------------------------------------------------------------------
+//
+// These utilities drive per-frame vertex interpolation for MD2 animations.
+// They complement model_data_c::LerpVertices() with MD2-specific semantics:
+// named-frame lookup, time-to-parameter conversion, and a one-call
+// "advance and lerp" interface suitable for a per-render-frame call.
+//
+
+// MD2AnimState – tracks playback state for a single MD2 animation clip.
+//
+// A "clip" is identified by a contiguous range of frame indices
+// [first_frame, last_frame] within a model_data_c.  Call Advance() every
+// tick / render frame with the elapsed time, then query LerpedFrame() for
+// the interpolated vertex list.
+//
+struct MD2AnimState
+{
+	int   first_frame;  // first frame index of the clip (inclusive)
+	int   last_frame;   // last  frame index of the clip (inclusive)
+	float fps;          // playback speed in frames per second
+	bool  loop;         // true = loop, false = clamp at last frame
+
+	// Internal playback cursor (fractional frame position within clip)
+	float cursor;       // [0, clip_length)
+
+	MD2AnimState()
+		: first_frame(0), last_frame(0), fps(10.0f), loop(true), cursor(0.0f)
+	{ }
+
+	MD2AnimState(int first, int last, float rate, bool do_loop)
+		: first_frame(first), last_frame(last)
+		, fps(rate > 0.0f ? rate : 10.0f)
+		, loop(do_loop), cursor(0.0f)
+	{ }
+
+	// Advance the cursor by dt seconds.  Returns true while the animation
+	// is still playing (always true for looping clips).
+	bool Advance(float dt);
+
+	// Current integer frame index (wraps / clamps within [first, last]).
+	int  CurrentFrame()  const;
+
+	// Next integer frame index (used as the second argument to LerpVertices).
+	int  NextFrame()     const;
+
+	// Interpolation parameter t in [0,1] for LerpVertices(…,t).
+	float LerpParam()   const;
+
+	// Helper: return the number of frames in the clip.
+	int  ClipLength()   const { return last_frame - first_frame + 1; }
+};
+
+// MD2_FindFrameRange – scan a model's frame names to locate the first and
+// last frames of a named animation clip (e.g. "stand", "run", "pain").
+//
+// MD2 frame names are typically stored as "stand01", "stand02", … so this
+// function strips trailing digits and matches the prefix.
+//
+// Returns false if no matching frames are found; first/last are unchanged.
+bool MD2_FindFrameRange(const model_data_c *mdl, const char *clip_name,
+                        int &first_out, int &last_out);
+
+// MD2_LerpFrame – convenience wrapper that combines Advance() + LerpVertices()
+// into a single call.
+//
+// Advances 'state' by dt seconds and writes the interpolated vertex list for
+// body part body_idx into 'out'.  Returns true while the animation is playing
+// (always true for looping states).
+bool MD2_LerpFrame(const model_data_c *mdl, int body_idx,
+                   MD2AnimState &state, float dt,
+                   std::vector<model_vert_c> &out);
+
 } // namespace epi
 
 #endif /* __EPI_MODEL_MD2_H__ */

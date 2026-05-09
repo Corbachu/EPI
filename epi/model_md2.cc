@@ -480,6 +480,134 @@ model_data_c *MD2Loader::Load(file_c *f)
 	return mdl;
 }
 
+// ---------------------------------------------------------------------------
+// MD2 interpolation helpers
+// ---------------------------------------------------------------------------
+
+bool MD2AnimState::Advance(float dt)
+{
+	if (ClipLength() <= 0)
+		return false;
+
+	cursor += fps * dt;
+
+	float len = (float)ClipLength();
+
+	if (loop)
+	{
+		// Wrap around within the clip.
+		while (cursor >= len) cursor -= len;
+		while (cursor <  0.0f) cursor += len;
+		return true;
+	}
+	else
+	{
+		// Clamp at end.
+		if (cursor >= len)
+		{
+			cursor = len - 1e-6f;
+			return false; // clip finished
+		}
+		return true;
+	}
+}
+
+int MD2AnimState::CurrentFrame() const
+{
+	int rel = (int)cursor;
+	if (rel < 0) rel = 0;
+	if (rel >= ClipLength()) rel = ClipLength() - 1;
+	return first_frame + rel;
+}
+
+int MD2AnimState::NextFrame() const
+{
+	int rel  = (int)cursor + 1;
+	if (loop)
+		rel = rel % ClipLength();
+	else if (rel >= ClipLength())
+		rel  = ClipLength() - 1;
+	return first_frame + rel;
+}
+
+float MD2AnimState::LerpParam() const
+{
+	float frac = cursor - (float)(int)cursor;
+	if (frac < 0.0f) frac = 0.0f;
+	if (frac > 1.0f) frac = 1.0f;
+	return frac;
+}
+
+// ---------------------------------------------------------------------------
+
+bool MD2_FindFrameRange(const model_data_c *mdl, const char *clip_name,
+                        int &first_out, int &last_out)
+{
+	if (!mdl || !clip_name || clip_name[0] == '\0')
+		return false;
+
+	int n = mdl->NumFrames();
+	if (n == 0) return false;
+
+	// Determine prefix length of clip_name (strip any trailing digits from
+	// the clip_name parameter itself, if the caller passes "stand01").
+	int clip_prefix_len = (int)strlen(clip_name);
+	while (clip_prefix_len > 0 &&
+	       clip_name[clip_prefix_len - 1] >= '0' &&
+	       clip_name[clip_prefix_len - 1] <= '9')
+	{
+		clip_prefix_len--;
+	}
+
+	int first = -1, last = -1;
+
+	for (int i = 0; i < n; i++)
+	{
+		const std::string &fname = mdl->frames[i].name;
+
+		// Strip trailing digits from the frame name to get its prefix.
+		int flen = (int)fname.size();
+		while (flen > 0 &&
+		       fname[flen - 1] >= '0' &&
+		       fname[flen - 1] <= '9')
+		{
+			flen--;
+		}
+
+		if (flen != clip_prefix_len) continue;
+		if (strncmp(fname.c_str(), clip_name, (size_t)clip_prefix_len) != 0)
+			continue;
+
+		if (first == -1) first = i;
+		last = i;
+	}
+
+	if (first == -1) return false;
+
+	first_out = first;
+	last_out  = last;
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+
+bool MD2_LerpFrame(const model_data_c *mdl, int body_idx,
+                   MD2AnimState &state, float dt,
+                   std::vector<model_vert_c> &out)
+{
+	SYS_ASSERT(mdl);
+
+	bool playing = state.Advance(dt);
+
+	int   fa = state.CurrentFrame();
+	int   fb = state.NextFrame();
+	float t  = state.LerpParam();
+
+	mdl->LerpVertices(body_idx, fa, fb, t, out);
+
+	return playing;
+}
+
 } // namespace epi
 
 //--- editor settings ---
