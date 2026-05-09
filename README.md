@@ -161,8 +161,11 @@ if (epi::HasExtraMemoryPool()) {
 | Fixed-point math    | `fxp_*.h/cc`, `fxp_vector_sh4.h`   | SH-4-accelerated fixed-point math        |
 | Image loading       | `image_*.h/cc`, `stb_image.*`       | PNG, JPEG, TGA, KMG image codecs         |
 | Sound               | `sound_*.h/cc`                      | WAV, VOC, MUS→MIDI conversion            |
+| Archives            | `archive_stuff/*`                   | WAD archive inspection and editing APIs  |
+| Legacy id helpers   | `kmq2/*`                            | Quake II byte-order, hunk, and parsing helpers |
 | Containers          | `arrays.*`, `tarray.h`, `pri_heap.*` | Lightweight collections                  |
 | Math                | `math_*.h/cc`                       | Vectors, matrices, quaternions, colour   |
+| Render helpers      | `rgl_vertex.h`                      | Generic vertex storage for GL pipelines  |
 | Filesystem          | `filesystem.*`, `file.*`, `path.*`  | Platform-abstracted file I/O             |
 
 ---
@@ -170,4 +173,3 @@ if (epi::HasExtraMemoryPool()) {
 ## License
 
 GNU General Public License v2 or later – see [LICENSE](LICENSE) for details.
-

@@ -577,9 +577,10 @@ static bool find_chunk(file_c *f, u32_t id)
         if (! read_le_s32(f, &len))
 			return false;
 
-        SYS_ASSERT(len >= 0);
+        if (len < 0)
+			return false;
 
-        pos += sizeof(u32_t) * 2 + len;
+        pos += sizeof(u32_t) * 2 + len + (len & 1);  // RIFF chunks are padded to even byte boundaries.
 
         if (len > 0)
 		{
@@ -614,7 +615,11 @@ bool WAV_LoadEx(sound_data_c *buf, file_c *f, bool preserve_stereo)
 		return false;
 	}
 
-	read_le_u32(f, &header_file_len);
+	if (! read_le_u32(f, &header_file_len))
+	{
+		I_Warning("WAV Loader: Missing RIFF length.\n");
+		return false;
+	}
 
 	if (! read_le_u32(f, &header_id) || header_id != ID_WAVE)
 	{
@@ -641,6 +646,11 @@ bool WAV_LoadEx(sound_data_c *buf, file_c *f, bool preserve_stereo)
 	if (channels > 2)
 	{
 		I_Warning("WAV Loader: too many channels: %d\n", channels);
+		return false;
+	}
+	if (channels <= 0 || freq <= 0)
+	{
+		I_Warning("WAV Loader: Invalid stream properties.\n");
 		return false;
 	}
 
@@ -681,10 +691,15 @@ bool WAV_LoadEx(sound_data_c *buf, file_c *f, bool preserve_stereo)
 		I_Warning("WAV Loader: Cannot get [data] chunk size.\n");
 		return false;
 	}
+	if (data_size < 0)
+	{
+		I_Warning("WAV Loader: Invalid [data] chunk size.\n");
+		return false;
+	}
 
     fmt->total_bytes = w->bytes_left = data_size;
 
-    fmt->sample_frame_size = (sizeof(s16_t) * channels); //!!!!! FIXME: made up shit
+    fmt->sample_frame_size = sizeof(s16_t) * channels;
 
 	decode_eof = decode_error = false;
 	
