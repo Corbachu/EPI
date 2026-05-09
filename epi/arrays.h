@@ -84,6 +84,10 @@ namespace epi
 		int InsertObject(void *obj, int pos = -1);
 		void RemoveObject(int pos);
 		
+		// Bulk capacity management – ensures backing store can hold at
+		// least 'capacity' entries without further reallocation.
+		bool Reserve(int capacity);
+
 		// Iterator handling
 		array_iterator_c GetBaseIterator();
 		array_iterator_c GetIterator(int pos);
@@ -94,6 +98,9 @@ namespace epi
 		bool Size(int entries);
 		bool Trim(void);
 		void ZeroiseCount(void) { array_end = array; array_entries = 0; }
+
+		// Number of entries currently stored.
+		int GetEntries() const { return array_entries; }
 	};
 
 

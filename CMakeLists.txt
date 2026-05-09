@@ -103,9 +103,9 @@ option(EPI_BUILD_TESTS        "Build EPI unit tests (host builds only)"         
 # Core source files – compiled on every platform
 # ---------------------------------------------------------------------------
 set(EPI_CORE_SOURCES
+    epi/archive.cc
+    epi/archive_wad.cc
     epi/arrays.cc
-    epi/archive_stuff/archive.cc
-    epi/archive_stuff/archive_wad.cc
     epi/bytearray.cc
     epi/console.cc
     epi/errors.cc
@@ -138,8 +138,16 @@ set(EPI_CORE_SOURCES
     epi/math_vector.cc
     epi/memmanager.cc
     epi/mersenne_twist.cc
+    epi/model_data.cc
+    epi/model_loader.cc
+    epi/model_md2.cc
+    epi/model_md3.cc
+    epi/model_hlmdl.cc
+    epi/model_md5.cc
+    epi/model_aitdbody.cc
     epi/mus_2_midi.cc
     epi/path.cc
+    epi/sort_cmp.cc
     epi/sound_data.cc
     epi/sound_gather.cc
     epi/sound_loader.cc
@@ -149,7 +157,9 @@ set(EPI_CORE_SOURCES
     epi/stb_image_write.cc
     epi/str_format.cc
     epi/timestamp.cc
+    epi/timer_utility.cc
     epi/utility.cc
+    epi/vector_format.cc
     # epi/utility_misc.cc  -- excluded: has engine-level dependencies (StringDup, AssertFail)
 )
 

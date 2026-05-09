@@ -34,6 +34,11 @@ bool WAV_Load(sound_data_c *buf, file_c *f);
 // storing the results in the given sound_data_c object.
 // Returns false if something went wrong.
 
+void WAV_ApplyLowPass(sound_data_c *buf, float cutoff_hz);
+// Apply a one-pole IIR low-pass filter to the decoded PCM data in-place.
+// cutoff_hz is the -3 dB corner frequency; the sample rate is taken from
+// buf->freq.  Useful for telephone-quality or muffled-underwater effects.
+
 } // namespace epi
 
 #endif /* __EPI_SOUND_WAV_H__ */

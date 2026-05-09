@@ -102,6 +102,20 @@ public:
 	angle_c Abs() const;
 	angle_c Dist(const angle_c& other) const;
 
+	// Linearly interpolate between this angle and another.
+	// t = 0 returns *this, t = 1 returns other.
+	// Always takes the shortest arc (< 180°).
+	angle_c Lerp(const angle_c& other, float t) const;
+
+	// Returns true if this angle is within tolerance of other.
+	bool IsNear(const angle_c& other, const angle_c& tolerance) const;
+
+	// Wrap the angle so it lies in [0, 360).
+	angle_c Wrap360() const;
+
+	// Clamp this angle to the range [lo, hi] (straight comparison, not circular).
+	angle_c Clamp(const angle_c& lo, const angle_c& hi) const;
+
 	inline bool Less180() const { return (bam & 0x80000000) ? false : true; }
 	inline bool More180() const { return (bam & 0x80000000) ? true : false; }
 	inline bool Less90()  const { return (bam & 0xC0000000) ? false : true; }
@@ -261,6 +275,31 @@ inline angle_c& angle_c::operator= (const angle_c& rhs)
 {
 	// no need to check for self assignment
 	bam = rhs.bam;
+	return *this;
+}
+
+inline angle_c angle_c::Lerp(const angle_c& other, float t) const
+{
+	// Compute the signed difference so we always take the short path.
+	s32_t diff = (s32_t)(other.bam - bam);
+	return angle_c(bam + (u32_t)((float)diff * t), false);
+}
+
+inline bool angle_c::IsNear(const angle_c& other, const angle_c& tolerance) const
+{
+	return Dist(other).bam <= tolerance.bam;
+}
+
+inline angle_c angle_c::Wrap360() const
+{
+	// The BAM representation naturally wraps; just return a copy.
+	return angle_c(bam, false);
+}
+
+inline angle_c angle_c::Clamp(const angle_c& lo, const angle_c& hi) const
+{
+	if (bam < lo.bam) return lo;
+	if (bam > hi.bam) return hi;
 	return *this;
 }
 

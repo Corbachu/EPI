@@ -519,6 +519,80 @@ void image_data_c::Swirl(int leveltime, int thickness)
 	delete[] old_pixels;
 	old_pixels = NULL;
 }
+
+void image_data_c::Blit(int src_x, int src_y, int src_w, int src_h,
+                         image_data_c *dst, int dst_x, int dst_y)
+{
+	SYS_ASSERT(dst);
+	SYS_ASSERT(bpp == dst->bpp);
+
+	// Clip source rect against source bounds
+	if (src_x < 0) { dst_x -= src_x; src_w += src_x; src_x = 0; }
+	if (src_y < 0) { dst_y -= src_y; src_h += src_y; src_y = 0; }
+	if (src_x + src_w > width)  src_w = width  - src_x;
+	if (src_y + src_h > height) src_h = height - src_y;
+
+	// Clip destination rect
+	if (dst_x < 0) { src_x -= dst_x; src_w += dst_x; dst_x = 0; }
+	if (dst_y < 0) { src_y -= dst_y; src_h += dst_y; dst_y = 0; }
+	if (dst_x + src_w > dst->width)  src_w = dst->width  - dst_x;
+	if (dst_y + src_h > dst->height) src_h = dst->height - dst_y;
+
+	if (src_w <= 0 || src_h <= 0)
+		return;
+
+	int row_bytes = src_w * bpp;
+	for (int row = 0; row < src_h; row++)
+	{
+		memcpy(dst->PixelAt(dst_x, dst_y + row),
+		       PixelAt(src_x, src_y + row),
+		       row_bytes);
+	}
+}
+
+void image_data_c::FlipHorizontal()
+{
+	int half_w = width / 2;
+
+	for (int y = 0; y < height; y++)
+	{
+		u8_t *row = pixels + y * width * bpp;
+		u8_t *a   = row;
+		u8_t *b   = row + (width - 1) * bpp;
+
+		for (int x = 0; x < half_w; x++, a += bpp, b -= bpp)
+		{
+			for (int c = 0; c < bpp; c++)
+			{
+				u8_t tmp = a[c];
+				a[c] = b[c];
+				b[c] = tmp;
+			}
+		}
+	}
+}
+
+void image_data_c::FlipVertical()
+{
+	Invert();
+}
+
+void image_data_c::Premultiply()
+{
+	if (bpp != 4)
+		return;
+
+	u8_t *p   = pixels;
+	u8_t *end = pixels + width * height * 4;
+
+	for (; p < end; p += 4)
+	{
+		unsigned int a = p[3];
+		p[0] = (u8_t)((unsigned int)p[0] * a / 255u);
+		p[1] = (u8_t)((unsigned int)p[1] * a / 255u);
+		p[2] = (u8_t)((unsigned int)p[2] * a / 255u);
+	}
+}
 } // namespace epi
 
 

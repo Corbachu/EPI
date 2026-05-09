@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------
-//  VOC Format Sound Loading
+//  EPI MD3 Model Loader (Quake 3 format)
 //----------------------------------------------------------------------------
 //
 //  Copyright (c) 2026  The EDGE Team.
@@ -15,28 +15,37 @@
 //  GNU General Public License for more details.
 //
 //----------------------------------------------------------------------------
+//
+//  Format reference: Quake 3 Arena MD3 specification
+//
+//  MD3 stores vertex positions as packed s16 values (xyz, normal).
+//  Each surface carries its own per-frame vertex buffer, tex-coord
+//  buffer, and index buffer.
+//
+//----------------------------------------------------------------------------
 
-#ifndef __EPI_SOUND_VOC_H__
-#define __EPI_SOUND_VOC_H__
+#ifndef __EPI_MODEL_MD3_H__
+#define __EPI_MODEL_MD3_H__
 
-#include "file.h"
-#include "sound_data.h"
+#include "model_loader.h"
 
 namespace epi
 {
 
-bool VOC_Load(sound_data_c *buf, file_c *f);
-// Decode the first Creative Voice data block from the given file stream,
-// storing the results in signed 16-bit PCM.
+class MD3Loader : public model_loader_c
+{
+public:
+	MD3Loader() { }
+	virtual ~MD3Loader() { }
 
-void VOC_ApplyLowPass(sound_data_c *buf, float cutoff_hz);
-// Apply a one-pole IIR low-pass filter to the decoded PCM data in-place.
-// cutoff_hz is the -3 dB corner frequency; the sample rate is taken from
-// buf->freq.
+	virtual bool Probe(file_c *f) override;
+	virtual model_data_c *Load(file_c *f) override;
+	virtual const char *FormatName() const override { return "MD3"; }
+};
 
 } // namespace epi
 
-#endif /* __EPI_SOUND_VOC_H__ */
+#endif /* __EPI_MODEL_MD3_H__ */
 
 //--- editor settings ---
 // vi:ts=4:sw=4:noexpandtab

@@ -2,7 +2,7 @@
 //  Sound Gather class
 //----------------------------------------------------------------------------
 // 
-//  Copyright (c) 2008  The EDGE Team.
+//  Copyright (c) 2008-2026  The EDGE Team.
 // 
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -43,6 +43,8 @@ public:
 	 sound_gather_c();
 	~sound_gather_c();
 
+	// ---- chunk management ----
+
 	s16_t * MakeChunk(int max_samples, bool _stereo);
 	// prepare to add a chunk of sound samples.  Returns a buffer
 	// containing the number of samples (* 2 for stereo) which the
@@ -52,11 +54,21 @@ public:
 	// add the current chunk to the stored sound data.
 	// The number of samples may be less than the size requested
 	// by the MakeChunk() call.  Passing zero for 'actual_samples'
-	// is equivalent to callng the DiscardChunk() method.
+	// is equivalent to calling the DiscardChunk() method.
 
 	void DiscardChunk();
 	// get rid of current chunk (because it wasn't needed, e.g.
 	// the sound file you were reading hit EOF).
+
+	// ---- query ----
+
+	int TotalSamples() const;
+	// returns the total number of committed samples so far.
+
+	bool IsEmpty() const;
+	// returns true when no samples have been committed yet.
+
+	// ---- finalisation ----
 
 	bool Finalise(sound_data_c *buf, bool want_stereo);
 	// take all the stored sound data and transfer it to the
@@ -65,6 +77,21 @@ public:
 	//
 	// Returns false (failure) if total samples was zero,
 	// otherwise returns true (success).
+
+	bool FinaliseInterleaved(sound_data_c *buf);
+	// Like Finalise, but always produces a stereo interleaved buffer
+	// (SBUF_Interleaved mode).  Mono chunks are duplicated to both channels.
+
+	// ---- post-process ----
+
+	void ApplyGain(float gain);
+	// Scale all committed sample data by 'gain'.  Values > 1.0 amplify,
+	// values < 1.0 attenuate.  Clamps output to [-32768, 32767].
+	// Only affects already-committed chunks, not the current request.
+
+	void Reset();
+	// discard all committed chunks and reset to empty state.
+	// Any pending request is also discarded.
 
 private:
 	void TransferMono  (gather_chunk_c *chunk, sound_data_c *buf, int pos);
