@@ -2,7 +2,7 @@
 //  EDGE Platform Interface Utility Header
 //----------------------------------------------------------------------------
 //
-//  Copyright (c) 2004-2008  The EDGE Team.
+//  Copyright (c) 2004-2026  The EDGE Team.
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -17,6 +17,9 @@
 //----------------------------------------------------------------------------
 #ifndef __EPI_UTIL__
 #define __EPI_UTIL__
+
+#include <string>
+#include <vector>
 
 #include "arrays.h"
 
@@ -139,6 +142,7 @@ namespace epi
     public:
         void Delete(int idx) { RemoveObject(idx); }
 	    int Find(const char* refname);
+	    int FindNoCase(const char* refname);
 	    int GetSize() const { return array_entries; }
 	    int Insert(const char *s);
     	void Set(strbox_c &src);
@@ -146,8 +150,48 @@ namespace epi
 		strlist_c& operator=(strlist_c &rhs);
 	    char* operator[](int idx) const { return *(char**)FetchObject(idx); } 
     };
-    
-};
+
+    //------------------------------------------------------------------------
+    // String utility functions
+    //------------------------------------------------------------------------
+
+	int STR_CaseCmp(const char *A, const char *B);
+	// Case-insensitive strcmp.
+
+	int STR_CaseCmpN(const char *A, const char *B, int n);
+	// Case-insensitive strncmp.
+
+	int STR_CaseCmpPartial(const char *A, const char *B);
+	// Returns 0 when B is a case-insensitive prefix of A.
+
+	std::string STR_ToUpper(const std::string &s);
+	std::string STR_ToLower(const std::string &s);
+
+	std::string STR_TrimLeft (const std::string &s);
+	std::string STR_TrimRight(const std::string &s);
+	std::string STR_Trim     (const std::string &s);
+	// Remove leading / trailing / both ASCII whitespace from a string.
+
+	bool STR_StartsWith      (const std::string &s, const std::string &prefix);
+	bool STR_EndsWith        (const std::string &s, const std::string &suffix);
+	bool STR_StartsWithNoCase(const std::string &s, const std::string &prefix);
+	bool STR_EndsWithNoCase  (const std::string &s, const std::string &suffix);
+
+	bool STR_Contains(const std::string &s, const std::string &needle);
+
+	std::vector<std::string> STR_Split   (const std::string &s, char delim);
+	std::vector<std::string> STR_SplitStr(const std::string &s, const std::string &delim);
+	std::string STR_Join(const std::vector<std::string> &parts, const std::string &sep);
+	std::string STR_Replace(const std::string &s, const std::string &from, const std::string &to);
+
+    //------------------------------------------------------------------------
+    // Hash utilities
+    //------------------------------------------------------------------------
+
+	u32_t STR_IntHash   (u32_t key);
+	u32_t STR_StringHash(const char *str);
+
+}; // namespace epi
 
 /// OBLIGE HOLDOVERS:
 #define ALIGN_LEN(x)  (((x) + 3) & ~3)

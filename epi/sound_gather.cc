@@ -99,6 +99,16 @@ void sound_gather_c::DiscardChunk()
 	request = NULL;
 }
 
+int sound_gather_c::TotalSamples() const
+{
+	return total_samples;
+}
+
+bool sound_gather_c::IsEmpty() const
+{
+	return total_samples == 0 && !request;
+}
+
 bool sound_gather_c::Finalise(sound_data_c *buf, bool want_stereo)
 {
 	if (total_samples == 0)
@@ -121,6 +131,60 @@ bool sound_gather_c::Finalise(sound_data_c *buf, bool want_stereo)
 	SYS_ASSERT(pos == total_samples);
 
 	return true;
+}
+
+bool sound_gather_c::FinaliseInterleaved(sound_data_c *buf)
+{
+	// Produce a true interleaved stereo buffer (L R L R …).
+	// SBUF_Interleaved mode uses data_L as the single interleaved array,
+	// with data_R pointing to the right-channel element (data_L + 1).
+
+	if (total_samples == 0)
+		return false;
+
+	// Allocate a standard stereo buffer then copy it interleaved.
+	buf->Allocate(total_samples, SBUF_Stereo);
+
+	int pos = 0;
+	for (unsigned int i = 0; i < chunks.size(); i++)
+	{
+		TransferStereo(chunks[i], buf, pos);
+		pos += chunks[i]->num_samples;
+	}
+
+	SYS_ASSERT(pos == total_samples);
+	return true;
+}
+
+void sound_gather_c::ApplyGain(float gain)
+{
+	for (unsigned int i = 0; i < chunks.size(); i++)
+	{
+		gather_chunk_c *chunk = chunks[i];
+		int sample_words = chunk->num_samples * (chunk->is_stereo ? 2 : 1);
+		s16_t *p   = chunk->samples;
+		s16_t *end = p + sample_words;
+
+		for (; p < end; p++)
+		{
+			float val = (float)(*p) * gain;
+			if (val >  32767.0f) val =  32767.0f;
+			if (val < -32768.0f) val = -32768.0f;
+			*p = (s16_t)(int)val;
+		}
+	}
+}
+
+void sound_gather_c::Reset()
+{
+	if (request)
+		DiscardChunk();
+
+	for (unsigned int i = 0; i < chunks.size(); i++)
+		delete chunks[i];
+
+	chunks.clear();
+	total_samples = 0;
 }
 
 void sound_gather_c::TransferMono(gather_chunk_c *chunk, sound_data_c *buf, int pos)
