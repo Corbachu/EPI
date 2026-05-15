@@ -39,6 +39,9 @@
 #include <numeric>
 #include <string>
 #include <cstring>
+#if !defined(_WIN32)
+#include <strings.h>
+#endif
 #include <iterator>
 
 namespace epi
