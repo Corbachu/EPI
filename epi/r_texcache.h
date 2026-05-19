@@ -196,6 +196,41 @@ private:
 // ---------------------------------------------------------------------------
 extern tex_cache_c RGL_TexCache;
 
+// ---------------------------------------------------------------------------
+// DITD procedural texture generators
+//
+// Both functions generate a CPU-side image_data_c, upload it via
+// RGL_TexCache.Upload(), and return the resulting tex_entry_c.
+// If a texture with the same 'name' already exists the cached entry
+// is returned unchanged (idempotent – safe to call every level load).
+//
+// These are only meaningful when EPI_ENABLE_RGL is active.
+// ---------------------------------------------------------------------------
+
+// Generate an RGBA noise texture of the given power-of-two dimensions.
+// Pixels have random grey intensity with full alpha; the caller controls
+// the final opacity at render time via r_shaders::Noise() intensity.
+// 'seed' seeds the LCG so deterministic frames can be generated.
+//
+// Typical use: once at startup (or room load) to create the grain atlas.
+//   tex_entry_c *noise = epi::GenerateNoiseTex("ditd/noise", 32, 32);
+//   r_effect_c grain(RFXTYPE_NOISE, noise, nullptr, 0.12f);
+tex_entry_c *GenerateNoiseTex(const std::string &name,
+                               int width = 32, int height = 32,
+                               unsigned int seed = 0);
+
+// Generate a 1-pixel-wide × height-pixel-tall RGBA scanline pattern.
+// Rows alternate between fully transparent (pass-through) and semi-opaque
+// black (darkened) to simulate a CRT raster.
+// 'line_alpha' controls the darkness of the opaque rows [0–255].
+//
+// Typical use:
+//   tex_entry_c *sl = epi::GenerateScanlineTex("ditd/scanline");
+//   r_effect_c crt(RFXTYPE_SCANLINE, sl, nullptr, 0.35f);
+tex_entry_c *GenerateScanlineTex(const std::string &name,
+                                  int height = 2,
+                                  u8_t line_alpha = 160);
+
 }  // namespace epi
 
 #endif  /* __EPI_R_TEXCACHE_H__ */

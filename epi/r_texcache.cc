@@ -450,6 +450,86 @@ void tex_cache_c::TouchLRU(tex_entry_c *entry)
 	lru_list_.push_back(entry);
 }
 
+// ===========================================================================
+// DITD procedural texture generators
+// ===========================================================================
+
+// Simple inline LCG – avoids pulling in math_random.h just for pixel fill.
+static inline unsigned int NextLCG(unsigned int state)
+{
+	return state * 1664525u + 1013904223u;
+}
+
+tex_entry_c *GenerateNoiseTex(const std::string &name,
+                               int width, int height,
+                               unsigned int seed)
+{
+	// Return existing entry when already uploaded (idempotent).
+	tex_entry_c *existing = RGL_TexCache.Find(name);
+	if (existing)
+		return existing;
+
+	// Build RGBA noise: random grey value, full alpha.
+	// The caller controls final opacity via the r_shaders::Noise intensity.
+	image_data_c img(width, height, 4);
+
+	unsigned int lcg = seed ^ 0xDEADBEEFu;
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			lcg = NextLCG(lcg);
+			u8_t grey  = (u8_t)(lcg & 0xFF);
+			u8_t *p    = img.PixelAt(x, y);
+			p[0] = grey;
+			p[1] = grey;
+			p[2] = grey;
+			p[3] = 255;
+		}
+	}
+
+	// Upload with repeat wrapping (tiled over the screen quad).
+	return RGL_TexCache.Upload(name, &img, TEXUPLOAD_NEAREST);
+}
+
+tex_entry_c *GenerateScanlineTex(const std::string &name,
+                                  int height,
+                                  u8_t line_alpha)
+{
+	// Return existing entry when already uploaded (idempotent).
+	tex_entry_c *existing = RGL_TexCache.Find(name);
+	if (existing)
+		return existing;
+
+	// Build a 1×height RGBA image.
+	// Row 0 (even): fully transparent – scene shows through.
+	// Row 1 (odd):  black with line_alpha – raster darkening.
+	// This 1-pixel wide strip tiles across the screen in S, and tiles
+	// vertically in T to create the scanline pattern.
+	image_data_c img(1, height, 4);
+	img.Clear(0);
+
+	for (int y = 0; y < height; y++)
+	{
+		u8_t *p = img.PixelAt(0, y);
+		if (y & 1)
+		{
+			// Dark scanline row
+			p[0] = 0;  p[1] = 0;  p[2] = 0;  p[3] = line_alpha;
+		}
+		else
+		{
+			// Transparent pass-through row
+			p[0] = 0;  p[1] = 0;  p[2] = 0;  p[3] = 0;
+		}
+	}
+
+	// Upload with nearest filtering and no mipmap; clamp S so the
+	// 1-pixel width doesn't bleed, repeat T for vertical tiling.
+	return RGL_TexCache.Upload(name, &img,
+	                            TEXUPLOAD_NEAREST | TEXUPLOAD_CLAMP_S);
+}
+
 }  // namespace epi
 
 //--- editor settings ---

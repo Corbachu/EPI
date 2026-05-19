@@ -27,10 +27,11 @@ namespace epi
 // Scroll speeds (texture coordinate units per second) for animated effects.
 static const float kWaterScrollS = 0.04f;
 static const float kWaterScrollT = 0.02f;
-static const float kFuzzScrollS  = 0.00f;
 static const float kFuzzScrollT  = 0.05f;
 // Glow pulse: full cycle period in seconds
 static const float kGlowPeriod   = 2.5f;
+// Noise: reference frame-rate used to derive per-frame UV hash
+static const float kNoiseFrameRate = 30.0f;
 
 // ---------------------------------------------------------------------------
 // Constructors / destructor
@@ -131,6 +132,20 @@ void r_effect_c::Update(float dt)
 			float phase  = (time_ / kGlowPeriod) * (float)(2.0 * 3.14159265);
 			float pulse  = 0.6f + 0.4f * sinf(phase);  // range [0.2, 1.0]
 			shaders_[0].alpha = intensity_ * pulse;
+			break;
+		}
+
+		case RFXTYPE_NOISE:
+		{
+			// Animate the noise texture with a pseudo-random UV offset so
+			// the grain changes every rendered frame (DITD film grain).
+			int ti = (int)(time_ * kNoiseFrameRate);
+			float os = (float)((ti * 7 + 3) & 0xFF) / 255.0f;
+			float ot = (float)((ti * 13 + 5) & 0xFF) / 255.0f;
+			shaders_[0].units[0].scroll_s = os;
+			shaders_[0].units[0].scroll_t = ot;
+			// Subtle alpha variation for more organic feel
+			shaders_[0].alpha = intensity_ * (0.8f + 0.2f * sinf(time_ * 4.7f));
 			break;
 		}
 
@@ -240,6 +255,24 @@ void r_effect_c::RebuildShaders()
 			shaders_[0].fog_enabled = false;  // caller can override
 			shaders_[0].units[0].scroll_s = 0.0f;
 			shaders_[0].units[0].scroll_t = 0.0f;
+			break;
+
+		// ---- DITD-specific effects ----
+
+		case RFXTYPE_NOISE:
+			shaders_[0] = r_shaders::Noise(tex_, intensity_);
+			break;
+
+		case RFXTYPE_SCANLINE:
+			shaders_[0] = r_shaders::Scanline(tex_, intensity_);
+			break;
+
+		case RFXTYPE_DARKZONE:
+			shaders_[0] = r_shaders::DarkZone(intensity_);
+			break;
+
+		case RFXTYPE_PRERENDERED_BG:
+			shaders_[0] = r_shaders::PrerenderedBG(tex_);
 			break;
 	}
 }

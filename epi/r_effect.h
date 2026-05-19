@@ -78,6 +78,34 @@ typedef enum
 
 	// Water / animated surface
 	RFXTYPE_WATER     = 10, // scrolling translucent water plane
+
+	// ----------------------------------------------------------------
+	// DITD (Alone in the Dark engine) specific effects
+	// ----------------------------------------------------------------
+
+	// Film-grain noise overlay: a small procedural noise texture is
+	// rendered as a screen-covering quad (additive blend) with a
+	// per-frame pseudo-random UV shift for animated static.
+	// Use GenerateNoiseTex() to create the noise texture, then call
+	// camera_c::PushScreenSpace() before submitting the screen quad.
+	RFXTYPE_NOISE      = 11,
+
+	// CRT-style horizontal scanline darkening overlay.  A 1×2 scanline
+	// pattern texture is tiled across the screen with MULTIPLY-like
+	// blending so every other pixel row is dimmed.  Invoke with
+	// GenerateScanlineTex() and a full-screen quad.
+	RFXTYPE_SCANLINE   = 12,
+
+	// AITD room-transition dark zone: a solid semi-opaque black quad
+	// is rendered without a texture to shade boundary areas between
+	// pre-rendered rooms.  No texture is needed; supply nullptr.
+	RFXTYPE_DARKZONE   = 13,
+
+	// AITD pre-rendered 2D background layer: the supplied texture is
+	// drawn as a full-screen REPLACE quad before any 3D geometry,
+	// with depth test and depth write both disabled so 3D content
+	// composites on top naturally.
+	RFXTYPE_PRERENDERED_BG = 14,
 }
 r_effect_type_e;
 

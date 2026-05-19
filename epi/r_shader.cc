@@ -427,6 +427,77 @@ r_shader_c EnvMap(const tex_entry_c *base, const tex_entry_c *env,
 	return sh;
 }
 
+r_shader_c Noise(const tex_entry_c *noise_tex, float intensity)
+{
+	// Additive blend over the existing framebuffer; low alpha so the
+	// grain brightens individual pixels subtly (DITD film grain).
+	r_shader_c sh;
+	sh.units[0].texture  = noise_tex;
+	sh.units[0].env_mode = RTEXENV_MODULATE;
+	// Tile the small noise texture across the screen
+	sh.units[0].clamp_s  = false;
+	sh.units[0].clamp_t  = false;
+	sh.blend             = RBLEND_ADD;
+	sh.alpha             = intensity;
+	sh.depth_test        = false;
+	sh.depth_write       = false;
+	sh.two_sided         = true;
+	sh.fog_enabled       = false;
+	return sh;
+}
+
+r_shader_c Scanline(const tex_entry_c *scanline_tex, float intensity)
+{
+	// Normal alpha blend: the scanline texture has alternating transparent
+	// and semi-opaque dark rows – every other scanline is dimmed.
+	r_shader_c sh;
+	sh.units[0].texture  = scanline_tex;
+	sh.units[0].env_mode = RTEXENV_MODULATE;
+	sh.units[0].clamp_s  = false;
+	sh.units[0].clamp_t  = false;  // tile vertically
+	sh.color             = color_c(0, 0, 0);
+	sh.blend             = RBLEND_NORMAL;
+	sh.alpha             = intensity;
+	sh.depth_test        = false;
+	sh.depth_write       = false;
+	sh.two_sided         = true;
+	sh.fog_enabled       = false;
+	return sh;
+}
+
+r_shader_c DarkZone(float intensity)
+{
+	// No texture – render a solid black quad with normal alpha blend.
+	// Used to shade AITD room boundary transition areas.
+	r_shader_c sh;
+	sh.units[0].texture  = nullptr;
+	sh.color             = color_c(0, 0, 0);
+	sh.blend             = RBLEND_NORMAL;
+	sh.alpha             = intensity;
+	sh.depth_test        = false;
+	sh.depth_write       = false;
+	sh.two_sided         = true;
+	sh.fog_enabled       = false;
+	return sh;
+}
+
+r_shader_c PrerenderedBG(const tex_entry_c *bg_tex)
+{
+	// Full-screen 2D background: REPLACE so vertex color does not tint it;
+	// depth test and depth write both off so 3D geometry can overdraw freely.
+	r_shader_c sh;
+	sh.units[0].texture  = bg_tex;
+	sh.units[0].env_mode = RTEXENV_REPLACE;
+	sh.units[0].clamp_s  = true;
+	sh.units[0].clamp_t  = true;
+	sh.blend             = RBLEND_NONE;
+	sh.depth_test        = false;
+	sh.depth_write       = false;
+	sh.two_sided         = true;
+	sh.fog_enabled       = false;
+	return sh;
+}
+
 }  // namespace r_shaders
 
 }  // namespace epi

@@ -229,17 +229,11 @@ void camera_c::SetAngles(angle_c yaw, angle_c pitch, angle_c roll)
 	// Clamp pitch if a limit is in effect.
 	if (pitch_limit_ > 0.0f)
 	{
-		angle_c limit = angle_c::FromRadians((double)pitch_limit_);
-		// Treat the signed range [-limit, +limit].  angle_c wraps at 2^32,
-		// so map to signed 32-bit for comparison.
-		s32_t p = (s32_t)pitch.Radians();  // just use the raw comparison via Radians
-
 		float rad = (float)pitch.Radians();
-		if (rad >  (float)(M_PI))  rad -= (float)(2.0 * M_PI);  // wrap to [-pi, pi]
-		if (rad >  pitch_limit_)   rad  = pitch_limit_;
-		if (rad < -pitch_limit_)   rad  = -pitch_limit_;
+		if (rad > (float)(M_PI))  rad -= (float)(2.0 * M_PI);  // wrap to [-pi, pi]
+		if (rad >  pitch_limit_)  rad  = pitch_limit_;
+		if (rad < -pitch_limit_)  rad  = -pitch_limit_;
 		pitch_ = angle_c::FromRadians((double)rad);
-		(void)p;
 	}
 	else
 	{
@@ -566,6 +560,33 @@ void camera_c::ApplyGL() const
 
 	glMatrixMode(GL_MODELVIEW);
 	ApplyViewGL();
+}
+
+void camera_c::PushScreenSpace(int width, int height) const
+{
+	// Save 3D projection state.
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	// Orthographic: pixel coordinates, top-left origin.
+	// glOrtho(left, right, bottom, top, near, far)
+	glOrtho(0.0, (double)width, (double)height, 0.0, -1.0, 1.0);
+
+	// Save 3D modelview state and reset to identity.
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+}
+
+void camera_c::PopScreenSpace() const
+{
+	// Restore projection.
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+
+	// Restore modelview.
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
 }
 
 #endif  // EPI_ENABLE_RGL

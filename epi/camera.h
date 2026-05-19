@@ -229,6 +229,25 @@ public:
 
 	// Convenience: set both matrices in the correct GL matrix mode.
 	void ApplyGL() const;
+
+	// ---- Screen-space (2D overlay) helpers ----
+
+	// Push an orthographic projection onto the GL matrix stacks so that
+	// subsequent quads can be drawn in pixel-space coordinates.
+	// (0,0) maps to the top-left; (width, height) maps to the bottom-right.
+	// Both the MODELVIEW and PROJECTION stacks are pushed, so the camera's
+	// 3D state is preserved and can be restored by PopScreenSpace().
+	//
+	// Typical DITD overlay pattern:
+	//   cam.PushScreenSpace(viewport_w, viewport_h);
+	//   noise_effect.BeginPass(0);
+	//   // submit a (0,0)→(viewport_w,viewport_h) quad with UV (0,0)→(1,1)
+	//   noise_effect.EndPass(0);
+	//   cam.PopScreenSpace();
+	void PushScreenSpace(int width, int height) const;
+
+	// Restore the 3D projection/modelview state saved by PushScreenSpace().
+	void PopScreenSpace() const;
 #endif
 
 private:
