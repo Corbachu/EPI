@@ -113,6 +113,7 @@ set(EPI_CORE_SOURCES
     epi/archive_wad.cc
     epi/arrays.cc
     epi/bytearray.cc
+    epi/camera.cc
     epi/console.cc
     epi/errors.cc
     epi/exe_path.cc
