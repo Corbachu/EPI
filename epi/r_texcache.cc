@@ -102,12 +102,13 @@ void tex_cache_c::Shutdown()
 /*static*/ u32_t tex_cache_c::CalcSize(const image_data_c *img, u32_t flags)
 {
 	int bpp = img->bpp;
-	if ((flags & TEXUPLOAD_PVR_TWIDDLED) ||
-	    !(flags & TEXUPLOAD_NEAREST))   // packed 16-bit if a PVR format
-	{
-		// Packed 16-bit PVR texture
-		bpp = 2;
-	}
+
+	// PVR-native packed formats are always 16-bit (2 bytes per texel).
+#ifdef EPI_PLATFORM_DC
+	bpp = 2;  // GLdc / PVR textures are always packed 16-bit on Dreamcast
+#else
+	(void)flags;  // flags may select mipmaps below; bpp stays as image bpp
+#endif
 
 	u32_t base = (u32_t)img->width * (u32_t)img->height * (u32_t)bpp;
 

@@ -725,16 +725,16 @@ image_data_c *image_data_c::MakeNormalMap(float scale) const
 			int ym1 = (y - 1 + height) % height;
 			int yp1 = (y + 1) % height;
 
-			auto Height = [&](int px, int py) -> float
+			auto height = [&](int px, int py) -> float
 			{
 				const u8_t *p = PixelAt(px, py);
 				return (p[0] * 0.30f + p[1] * 0.59f + p[2] * 0.11f) / 255.0f;
 			};
 
-			float tl = Height(xm1, ym1);  float t  = Height(x,   ym1);
-			float tr = Height(xp1, ym1);  float l  = Height(xm1, y);
-			float r  = Height(xp1, y);    float bl = Height(xm1, yp1);
-			float b  = Height(x,   yp1);  float br = Height(xp1, yp1);
+			float tl = height(xm1, ym1);  float t  = height(x,   ym1);
+			float tr = height(xp1, ym1);  float l  = height(xm1, y);
+			float r  = height(xp1, y);    float bl = height(xm1, yp1);
+			float b  = height(x,   yp1);  float br = height(xp1, yp1);
 
 			// Sobel
 			float dx = (tr + 2.0f*r + br) - (tl + 2.0f*l + bl);
