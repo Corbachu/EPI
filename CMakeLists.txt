@@ -222,6 +222,7 @@ if(EPI_ENABLE_RGL)
         epi/r_texcache.cc
         epi/r_shader.cc
         epi/r_effect.cc
+        epi/model_skin.cc
     )
 endif()
 

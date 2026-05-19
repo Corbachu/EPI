@@ -70,8 +70,18 @@
 //  Textured primitives (types 9 / 10) carry per-vertex (u, v) byte
 //  coordinates (range 0–255).  The loader stores these in model_vert_c::uv
 //  (mapped to [0,1]) and assigns a skin entry whose name encodes the
-//  texture index as "aitd:tex:<color_byte>" so the engine can resolve it
-//  through its own texture cache.
+//  texture index as "aitd:tex:<color_byte>:<subtype>" so the engine can
+//  resolve it through its own texture cache.
+//
+//  To upload all skins to the GPU and bind them at render time, use
+//  epi::model_skin_c (epi/model_skin.h, requires EPI_ENABLE_RGL):
+//
+//      epi::model_skin_c skin;
+//      skin.Attach(mdl);
+//      skin.ResolveAll(epi::RGL_TexCache);
+//      // optionally: skin.SetOverride(slot, real_tex_entry);
+//
+//  See epi/model_skin.h for full API documentation.
 //
 //----------------------------------------------------------------------------
 
