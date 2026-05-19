@@ -98,6 +98,12 @@ option(EPI_ENABLE_SH4_ACCEL  "Enable SH-4 hardware math acceleration (Dreamcast 
 option(EPI_ENABLE_COAL2       "Link with COAL2 scripting library"                       OFF)
 option(EPI_ENABLE_PHYSFS      "Enable PhysicsFS virtual filesystem layer"               OFF)
 option(EPI_BUILD_TESTS        "Build EPI unit tests (host builds only)"                 OFF)
+option(EPI_ENABLE_RGL         "Build the EPI render layer (r_texcache, r_shader, r_effect) – requires OpenGL" OFF)
+
+# On Dreamcast GLdc provides OpenGL 1.x natively; enable RGL automatically.
+if(EPI_PLATFORM_DREAMCAST)
+    set(EPI_ENABLE_RGL ON CACHE BOOL "Forced ON for Dreamcast (GLdc)" FORCE)
+endif()
 
 # ---------------------------------------------------------------------------
 # Core source files – compiled on every platform
@@ -204,6 +210,21 @@ elseif(EPI_PLATFORM_LINUX)
 endif()
 
 # ---------------------------------------------------------------------------
+# Render layer (r_texcache, r_shader, r_effect) – optional, requires OpenGL
+# ---------------------------------------------------------------------------
+if(EPI_ENABLE_RGL)
+    if(NOT EPI_PLATFORM_DREAMCAST)
+        find_package(OpenGL REQUIRED)
+    endif()
+
+    list(APPEND EPI_CORE_SOURCES
+        epi/r_texcache.cc
+        epi/r_shader.cc
+        epi/r_effect.cc
+    )
+endif()
+
+# ---------------------------------------------------------------------------
 # Library target
 # ---------------------------------------------------------------------------
 add_library(epi STATIC ${EPI_CORE_SOURCES})
@@ -236,6 +257,13 @@ endif()
 
 if(EPI_ENABLE_PHYSFS)
     target_compile_definitions(epi PUBLIC HAVE_PHYSFS)
+endif()
+
+if(EPI_ENABLE_RGL)
+    target_compile_definitions(epi PUBLIC EPI_ENABLE_RGL=1)
+    if(NOT EPI_PLATFORM_DREAMCAST AND OpenGL_FOUND)
+        target_link_libraries(epi PUBLIC OpenGL::GL)
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------
