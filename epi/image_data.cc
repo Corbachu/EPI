@@ -593,6 +593,222 @@ void image_data_c::Premultiply()
 		p[2] = (u8_t)((unsigned int)p[2] * a / 255u);
 	}
 }
+void image_data_c::ConvertBpp(int new_bpp)
+{
+	if (new_bpp == bpp)
+		return;
+
+	SYS_ASSERT(new_bpp == 3 || new_bpp == 4);
+	SYS_ASSERT(bpp == 3 || bpp == 4);
+
+	int total = width * height;
+	u8_t *new_pixels = new u8_t[total * new_bpp];
+
+	const u8_t *src = pixels;
+	u8_t       *dst = new_pixels;
+
+	if (bpp == 3 && new_bpp == 4)
+	{
+		for (int i = 0; i < total; i++, src += 3, dst += 4)
+		{
+			dst[0] = src[0];
+			dst[1] = src[1];
+			dst[2] = src[2];
+			dst[3] = 255;
+		}
+	}
+	else  // bpp==4, new_bpp==3: drop alpha
+	{
+		for (int i = 0; i < total; i++, src += 4, dst += 3)
+		{
+			dst[0] = src[0];
+			dst[1] = src[1];
+			dst[2] = src[2];
+		}
+	}
+
+	delete[] pixels;
+	pixels = new_pixels;
+	bpp = (short)new_bpp;
+}
+
+void image_data_c::ApplyGamma(float gamma)
+{
+	SYS_ASSERT(bpp >= 3);
+	SYS_ASSERT(gamma > 0.0f);
+
+	// Build a look-up table for speed.
+	u8_t lut[256];
+	float inv_gamma = 1.0f / gamma;
+	for (int i = 0; i < 256; i++)
+		lut[i] = (u8_t)(int)(powf(i / 255.0f, inv_gamma) * 255.0f + 0.5f);
+
+	u8_t *p   = pixels;
+	u8_t *end = pixels + width * height * bpp;
+
+	for (; p < end; p += bpp)
+	{
+		p[0] = lut[p[0]];
+		p[1] = lut[p[1]];
+		p[2] = lut[p[2]];
+		// alpha (p[3] when bpp==4) is intentionally unchanged
+	}
+}
+
+void image_data_c::ApplyBrightness(float brightness)
+{
+	SYS_ASSERT(bpp >= 3);
+
+	u8_t *p   = pixels;
+	u8_t *end = pixels + width * height * bpp;
+
+	for (; p < end; p += bpp)
+	{
+		int r = (int)(p[0] * brightness + 0.5f);
+		int g = (int)(p[1] * brightness + 0.5f);
+		int b = (int)(p[2] * brightness + 0.5f);
+
+		p[0] = (u8_t)MIN(255, r);
+		p[1] = (u8_t)MIN(255, g);
+		p[2] = (u8_t)MIN(255, b);
+	}
+}
+
+void image_data_c::ApplyBrightmap(const image_data_c *bright)
+{
+	SYS_ASSERT(bright);
+	SYS_ASSERT(bpp >= 3);
+	SYS_ASSERT(bright->bpp >= 3);
+	SYS_ASSERT(bright->width  == width);
+	SYS_ASSERT(bright->height == height);
+
+	u8_t *p   = pixels;
+	u8_t *end = pixels + width * height * bpp;
+	const u8_t *b = bright->pixels;
+
+	for (; p < end; p += bpp, b += bright->bpp)
+	{
+		p[0] = (u8_t)((int)p[0] * (int)b[0] / 255);
+		p[1] = (u8_t)((int)p[1] * (int)b[1] / 255);
+		p[2] = (u8_t)((int)p[2] * (int)b[2] / 255);
+	}
+}
+
+void image_data_c::ApplyColormap(const u8_t *colormap, int num_colors)
+{
+	SYS_ASSERT(bpp == 1);
+	SYS_ASSERT(colormap);
+	SYS_ASSERT(num_colors > 0);
+
+	u8_t *p   = pixels;
+	u8_t *end = pixels + width * height;
+
+	for (; p < end; p++)
+		*p = colormap[*p % num_colors];
+}
+
+image_data_c *image_data_c::MakeNormalMap(float scale) const
+{
+	SYS_ASSERT(bpp >= 3);
+
+	image_data_c *nmap = new image_data_c(width, height, 3);
+
+	// Compute height as average luminance.
+	// Sobel kernel derivates give the gradient; scale controls depth.
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			// Wrap-around neighbours for seamless tiling.
+			int xm1 = (x - 1 + width)  % width;
+			int xp1 = (x + 1) % width;
+			int ym1 = (y - 1 + height) % height;
+			int yp1 = (y + 1) % height;
+
+			auto height = [&](int px, int py) -> float
+			{
+				const u8_t *p = PixelAt(px, py);
+				return (p[0] * 0.30f + p[1] * 0.59f + p[2] * 0.11f) / 255.0f;
+			};
+
+			float tl = height(xm1, ym1);  float t  = height(x,   ym1);
+			float tr = height(xp1, ym1);  float l  = height(xm1, y);
+			float r  = height(xp1, y);    float bl = height(xm1, yp1);
+			float b  = height(x,   yp1);  float br = height(xp1, yp1);
+
+			// Sobel
+			float dx = (tr + 2.0f*r + br) - (tl + 2.0f*l + bl);
+			float dy = (bl + 2.0f*b + br) - (tl + 2.0f*t + tr);
+			float dz = 1.0f / scale;
+
+			// Normalise
+			float len = sqrtf(dx*dx + dy*dy + dz*dz);
+			if (len < 1e-6f) len = 1e-6f;
+			dx /= len;  dy /= len;  dz /= len;
+
+			u8_t *dst = nmap->PixelAt(x, y);
+			dst[0] = (u8_t)((dx * 0.5f + 0.5f) * 255.0f + 0.5f);
+			dst[1] = (u8_t)((dy * 0.5f + 0.5f) * 255.0f + 0.5f);
+			dst[2] = (u8_t)((dz * 0.5f + 0.5f) * 255.0f + 0.5f);
+		}
+	}
+
+	return nmap;
+}
+
+void image_data_c::PackRGB565(u16_t *out) const
+{
+	SYS_ASSERT(out);
+	SYS_ASSERT(bpp >= 3);
+
+	int total = width * height;
+	const u8_t *p = pixels;
+
+	for (int i = 0; i < total; i++, p += bpp)
+	{
+		u16_t r = (u16_t)(p[0] >> 3);   // 5 bits
+		u16_t g = (u16_t)(p[1] >> 2);   // 6 bits
+		u16_t b = (u16_t)(p[2] >> 3);   // 5 bits
+		out[i] = (r << 11) | (g << 5) | b;
+	}
+}
+
+void image_data_c::PackARGB1555(u16_t *out) const
+{
+	SYS_ASSERT(out);
+	SYS_ASSERT(bpp == 4);
+
+	int total = width * height;
+	const u8_t *p = pixels;
+
+	for (int i = 0; i < total; i++, p += 4)
+	{
+		u16_t a = (p[3] >= 128) ? 1u : 0u;
+		u16_t r = (u16_t)(p[0] >> 3);
+		u16_t g = (u16_t)(p[1] >> 3);
+		u16_t b = (u16_t)(p[2] >> 3);
+		out[i] = (a << 15) | (r << 10) | (g << 5) | b;
+	}
+}
+
+void image_data_c::PackARGB4444(u16_t *out) const
+{
+	SYS_ASSERT(out);
+	SYS_ASSERT(bpp == 4);
+
+	int total = width * height;
+	const u8_t *p = pixels;
+
+	for (int i = 0; i < total; i++, p += 4)
+	{
+		u16_t a = (u16_t)(p[3] >> 4);
+		u16_t r = (u16_t)(p[0] >> 4);
+		u16_t g = (u16_t)(p[1] >> 4);
+		u16_t b = (u16_t)(p[2] >> 4);
+		out[i] = (a << 12) | (r << 8) | (g << 4) | b;
+	}
+}
+
 } // namespace epi
 
 

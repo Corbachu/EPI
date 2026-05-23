@@ -163,6 +163,43 @@ public:
 	void Premultiply();
 	// Multiply each RGB channel by the alpha value (for pre-multiplied
 	// alpha compositing).  Image must be RGBA (bpp == 4).
+
+	void ConvertBpp(int new_bpp);
+	// Convert between RGB (bpp==3) and RGBA (bpp==4).
+	// RGB→RGBA sets alpha to 255; RGBA→RGB discards the alpha channel.
+
+	void ApplyGamma(float gamma);
+	// Apply gamma correction to RGB(A) data.  Values < 1.0 darken the
+	// image; values > 1.0 brighten it.  Alpha is not affected.
+
+	void ApplyBrightness(float brightness);
+	// Scale all RGB channels by 'brightness' (1.0 = unchanged, > 1.0
+	// brightens, clamped to 255).  Alpha is not affected.
+
+	void ApplyBrightmap(const image_data_c *bright);
+	// Multiply this image's RGB by the RGB values of 'bright'
+	// (a brightmap / lightmap overlay).  'bright' must be the same
+	// width and height.  Alpha is not affected.
+
+	void ApplyColormap(const u8_t *colormap, int num_colors);
+	// Remap a paletted (bpp==1) image through 'colormap'.  Each pixel
+	// value p becomes colormap[p] (wrapping at num_colors).
+
+	image_data_c *MakeNormalMap(float scale = 1.0f) const;
+	// Generate an RGB normal map from this image treated as a height
+	// map (luminance → height).  Returns a new bpp==3 image the same
+	// size; caller owns the result.  'scale' amplifies the depth.
+
+	void PackRGB565(u16_t *out) const;
+	// Pack this RGB or RGBA image into width*height RGB565 words.
+	// 'out' must point to at least width*height u16_t values.
+
+	void PackARGB1555(u16_t *out) const;
+	// Pack this RGBA image into width*height ARGB1555 words.
+	// Pixels with alpha >= 128 are considered opaque.
+
+	void PackARGB4444(u16_t *out) const;
+	// Pack this RGBA image into width*height ARGB4444 words.
 };
 
 // IMAGE LOADING FLAGS
