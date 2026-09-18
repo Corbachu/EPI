@@ -149,6 +149,19 @@ void r_effect_c::Update(float dt)
 			break;
 		}
 
+		case RFXTYPE_NONE:
+		case RFXTYPE_SOLID:
+		case RFXTYPE_MASKED:
+		case RFXTYPE_TRANS:
+		case RFXTYPE_SHADOW:
+		case RFXTYPE_COLORMAP:
+		case RFXTYPE_ADDITIVE:
+		case RFXTYPE_ENVMAP:
+		case RFXTYPE_SCANLINE:
+		case RFXTYPE_DARKZONE:
+		case RFXTYPE_PRERENDERED_BG:
+			break;
+
 		default:
 			break;
 	}

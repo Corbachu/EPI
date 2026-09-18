@@ -25,6 +25,7 @@
 #if defined(_arch_dreamcast) || defined(DREAMCAST) || defined(PLATFORM_DREAMCAST)
 #  define EPI_PLATFORM_DC 1
 #  include <GL/gl.h>
+#  include <GL/glext.h>
 #elif defined(_WIN32) || defined(_WIN64)
 #  include <windows.h>
 #  include <GL/gl.h>
@@ -36,6 +37,23 @@
 
 #include <cmath>
 #include <cstring>
+
+#if defined(EPI_PLATFORM_DC)
+#  ifndef GL_CLAMP_TO_EDGE
+#    define GL_CLAMP_TO_EDGE GL_CLAMP
+#  endif
+#  ifndef GL_ADD
+#    define GL_ADD GL_MODULATE
+#  endif
+static inline void epi_glTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
+{
+	(void)target;
+	(void)pname;
+	(void)params;
+}
+#else
+#  define epi_glTexEnvfv glTexEnvfv
+#endif
 
 namespace epi
 {
@@ -119,6 +137,9 @@ void r_shader_c::ApplyFog() const
 
 	switch (fog.mode)
 	{
+		case RFOG_NONE:
+			break;
+
 		case RFOG_LINEAR:
 			glFogi(GL_FOG_MODE, GL_LINEAR);
 			glFogf(GL_FOG_START, fog.start);
@@ -206,7 +227,7 @@ void r_shader_c::ApplyTexUnits() const
 
 			case RTEXENV_BLEND_COLOR:
 				glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
-				glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR,
+				epi_glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR,
 				           unit.env_color);
 				break;
 

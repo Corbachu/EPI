@@ -25,6 +25,7 @@
 #if defined(_arch_dreamcast) || defined(DREAMCAST) || defined(PLATFORM_DREAMCAST)
 #  define EPI_PLATFORM_DC 1
 #  include <GL/gl.h>        // GLdc – OpenGL 1.x on KallistiOS
+#  include <GL/glext.h>
 #  include <dc/pvr.h>       // PVR memory allocation
 #  include <kos/img.h>      // kos_img_t
 #elif defined(_WIN32) || defined(_WIN64)
@@ -39,6 +40,10 @@
 #include <cmath>
 #include <cstring>
 #include <cassert>
+
+#if defined(EPI_PLATFORM_DC) && !defined(GL_CLAMP_TO_EDGE)
+#  define GL_CLAMP_TO_EDGE GL_CLAMP
+#endif
 
 namespace epi
 {
@@ -215,8 +220,8 @@ void tex_cache_c::UploadToPVR(tex_entry_c *entry,
 	pvr_ptr_t mem = pvr_mem_malloc(byte_count);
 	if (!mem)
 	{
-		I_Warning("r_texcache: pvr_mem_malloc(%u) failed for '%s'\n",
-		          byte_count, entry->name.c_str());
+		I_Warning("r_texcache: pvr_mem_malloc(%lu) failed for '%s'\n",
+		          static_cast<unsigned long>(byte_count), entry->name.c_str());
 		return;
 	}
 
