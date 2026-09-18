@@ -427,24 +427,6 @@ std::string STR_Join(const std::vector<std::string> &parts, const std::string &s
 	return out;
 }
 
-std::string STR_Replace(const std::string &s, const std::string &from, const std::string &to)
-{
-	if (from.empty())
-		return s;
-
-	std::string out;
-	size_t start = 0;
-	size_t pos;
-	while ((pos = s.find(from, start)) != std::string::npos)
-	{
-		out += s.substr(start, pos - start);
-		out += to;
-		start = pos + from.size();
-	}
-	out += s.substr(start);
-	return out;
-}
-
 bool STR_Contains(const std::string &s, const std::string &needle)
 {
 	return s.find(needle) != std::string::npos;

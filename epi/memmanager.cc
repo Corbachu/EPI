@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <new>
 
 namespace epi
@@ -34,12 +35,13 @@ namespace epi
 bool mem_manager_c::debug_ = false;
 
 mem_manager_c::mem_manager_c(unsigned int total_bytes)
-    : head_(nullptr), arena_(nullptr), total_bytes_(0), used_bytes_(0) {
+    : head_(nullptr), allocation_(nullptr), arena_(nullptr), total_bytes_(0), used_bytes_(0) {
     InitArena(total_bytes);
 }
 
 mem_manager_c::~mem_manager_c() {
-    if (arena_) std::free(arena_);
+    if (allocation_) std::free(allocation_);
+    allocation_ = nullptr;
     arena_ = nullptr;
     head_ = nullptr;
     total_bytes_ = used_bytes_ = 0;
@@ -47,20 +49,27 @@ mem_manager_c::~mem_manager_c() {
 
 void mem_manager_c::InitArena(unsigned int bytes) {
     if (bytes < 1024u) bytes = 1024u;
-    // allocate with malloc so it works in freestanding builds that provide heap
-    arena_ = std::malloc(bytes);
-    if (!arena_) {
+    if ((std::size_t)bytes > std::numeric_limits<std::size_t>::max() - (ALIGNMENT - 1u))
+        return;
+
+    // malloc remains the backing allocator, while the pool preserves its stronger 8-byte contract.
+    allocation_ = std::malloc((std::size_t)bytes + ALIGNMENT - 1u);
+    if (!allocation_) {
         head_ = nullptr;
         total_bytes_ = 0;
         used_bytes_ = 0;
         return;
     }
+
+    std::uintptr_t raw_address = reinterpret_cast<std::uintptr_t>(allocation_);
+    std::uintptr_t aligned_address = (raw_address + ALIGNMENT - 1u) & ~(ALIGNMENT - 1u);
+    arena_ = reinterpret_cast<void*>(aligned_address);
     total_bytes_ = bytes;
     used_bytes_ = 0;
-    // create single free block covering entire arena
-    head_ = reinterpret_cast<BlockHeader*>(arena_);
+    // Create one free block; the padded header keeps every payload and split aligned.
+    head_ = new (arena_) BlockHeader();
     head_->magic = MAGIC;
-    head_->size = static_cast<std::uint32_t>(bytes - sizeof(BlockHeader));
+    head_->size = static_cast<std::uint32_t>(bytes - HEADER_SIZE);
     head_->next = nullptr;
     head_->prev = nullptr;
     head_->free = true;
@@ -68,8 +77,9 @@ void mem_manager_c::InitArena(unsigned int bytes) {
 }
 
 std::size_t mem_manager_c::AlignUp(std::size_t v) {
-    std::size_t a = ALIGNMENT;
-    return (v + (a - 1)) & ~(a - 1);
+    if (v > std::numeric_limits<std::size_t>::max() - (ALIGNMENT - 1u))
+        return 0;
+    return (v + ALIGNMENT - 1u) & ~(ALIGNMENT - 1u);
 }
 
 mem_manager_c::BlockHeader* mem_manager_c::FindFit(std::size_t want) {
@@ -80,12 +90,12 @@ mem_manager_c::BlockHeader* mem_manager_c::FindFit(std::size_t want) {
 }
 
 void mem_manager_c::SplitBlock(BlockHeader* b, std::size_t want) {
-    if (b->size < want + sizeof(BlockHeader) + ALIGNMENT) return;
+    if (want > b->size || b->size - want < HEADER_SIZE + ALIGNMENT) return;
     std::uint8_t* base = reinterpret_cast<std::uint8_t*>(b);
-    std::uint8_t* newhdr = base + sizeof(BlockHeader) + want;
-    BlockHeader* nb = reinterpret_cast<BlockHeader*>(newhdr);
+    void* new_header_address = base + HEADER_SIZE + want;
+    BlockHeader* nb = new (new_header_address) BlockHeader();
     nb->magic = MAGIC;
-    nb->size = static_cast<std::uint32_t>(b->size - want - sizeof(BlockHeader));
+    nb->size = static_cast<std::uint32_t>(b->size - want - HEADER_SIZE);
     nb->free = true;
     nb->next = b->next;
     nb->prev = b;
@@ -96,7 +106,9 @@ void mem_manager_c::SplitBlock(BlockHeader* b, std::size_t want) {
 
 void* mem_manager_c::Alloc(std::size_t bytes) {
     if (bytes == 0) bytes = 1;
+    if (bytes > std::numeric_limits<std::uint32_t>::max()) return nullptr;
     std::size_t want = AlignUp(bytes);
+    if (want == 0 || want > std::numeric_limits<std::uint32_t>::max()) return nullptr;
     BlockHeader* b = FindFit(want);
     if (!b) return nullptr;
     SplitBlock(b, want);
@@ -126,12 +138,12 @@ void mem_manager_c::Free(void* ptr) {
 
 void mem_manager_c::Coalesce(BlockHeader* b) {
     if (b->next && b->next->free && b->next->magic == MAGIC) {
-        b->size += sizeof(BlockHeader) + b->next->size;
+        b->size += HEADER_SIZE + b->next->size;
         b->next = b->next->next;
         if (b->next) b->next->prev = b;
     }
     if (b->prev && b->prev->free && b->prev->magic == MAGIC) {
-        b->prev->size += sizeof(BlockHeader) + b->size;
+        b->prev->size += HEADER_SIZE + b->size;
         b->prev->next = b->next;
         if (b->next) b->next->prev = b->prev;
     }
@@ -140,9 +152,10 @@ void mem_manager_c::Coalesce(BlockHeader* b) {
 void* mem_manager_c::Realloc(void* ptr, std::size_t new_size) {
     if (!ptr) return Alloc(new_size);
     BlockHeader* h = HeaderFromPtr(ptr);
-    if (!h || h->magic != MAGIC) return nullptr;
+    if (!h || h->magic != MAGIC || h->free) return nullptr;
     if (new_size == 0) { Free(ptr); return nullptr; }
     std::size_t want = AlignUp(new_size);
+    if (want == 0 || want > std::numeric_limits<std::uint32_t>::max()) return nullptr;
     if (h->size >= want) return ptr;
     void* n = Alloc(new_size);
     if (!n) return nullptr;
@@ -152,19 +165,35 @@ void* mem_manager_c::Realloc(void* ptr, std::size_t new_size) {
 }
 
 mem_manager_c::BlockHeader* mem_manager_c::HeaderFromPtr(void* p) const {
-    if (!p) return nullptr;
-    return reinterpret_cast<BlockHeader*>(
-        reinterpret_cast<std::uint8_t*>(p) - sizeof(BlockHeader));
+    if (!p || !arena_) return nullptr;
+
+    std::uintptr_t arena_address = reinterpret_cast<std::uintptr_t>(arena_);
+    std::uintptr_t pointer_address = reinterpret_cast<std::uintptr_t>(p);
+    if (pointer_address < arena_address + HEADER_SIZE ||
+        pointer_address >= arena_address + total_bytes_ ||
+        (pointer_address - arena_address) % ALIGNMENT != 0)
+        return nullptr;
+
+    for (BlockHeader* block = head_; block; block = block->next) {
+        if (PtrFromHeader(block) == p) return block;
+    }
+    return nullptr;
 }
 
 void* mem_manager_c::PtrFromHeader(BlockHeader* h) const {
     return reinterpret_cast<void*>(
-        reinterpret_cast<std::uint8_t*>(h) + sizeof(BlockHeader));
+        reinterpret_cast<std::uint8_t*>(h) + HEADER_SIZE);
 }
 
 unsigned int mem_manager_c::TotalBytes() const { return total_bytes_; }
 unsigned int mem_manager_c::UsedBytes() const { return used_bytes_; }
-unsigned int mem_manager_c::FreeBytes() const { return total_bytes_ - used_bytes_; }
+unsigned int mem_manager_c::FreeBytes() const {
+    unsigned int free_bytes = 0;
+    for (BlockHeader* block = head_; block; block = block->next) {
+        if (block->free && block->magic == MAGIC) free_bytes += block->size;
+    }
+    return free_bytes;
+}
 
 void mem_manager_c::DumpStats() const {
     std::printf("mem_manager: total=%u used=%u free=%u\n",

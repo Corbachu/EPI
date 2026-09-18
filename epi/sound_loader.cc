@@ -68,6 +68,10 @@ bool Sound_Load(sound_data_c *buf, file_c *f, bool preserve_stereo, sound_format
 		case SND_FMT_VOC:
 			return VOC_Load(buf, f);
 
+		case SND_FMT_Unknown:
+		case SND_FMT_OGG:
+			return false;
+
 		default:
 			return false;
 	}

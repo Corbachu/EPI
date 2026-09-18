@@ -50,7 +50,7 @@
 #endif
 
 #ifdef HAVE_PHYSFS
-// PhysFS integration enabled
+#  include <physfs.h>
 #endif
 
 namespace epi

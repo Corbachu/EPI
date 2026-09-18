@@ -128,7 +128,7 @@ bool ansi_file_c::Seek(int offset, int seekpoint)
 
 //    I_Debugf("Seek to: 0x%08x whence:%d  --->  0x%08x %d\n", offset, whence, curr_pos, result);
 
-	return (result == 0);
+    return (result >= 0);
 }
 
 byte *file_c::LoadIntoMemory(int max_size)

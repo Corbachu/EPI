@@ -48,7 +48,7 @@ private:
 
 	u32_t bam;
 
-	angle_c(u32_t _bam, bool xxx) : bam(_bam) { }
+	angle_c(u32_t _bam, bool) : bam(_bam) { }
 	// xxx is a dummy argument, without it this method's signature
 	// becomes too similiar to the integer constructor below.
 
@@ -174,7 +174,7 @@ inline angle_c::angle_c(int deg) : bam(deg * 11930464 + deg * 7 / 10)
 }
 
 inline angle_c::angle_c(float deg) :
-	bam((u32_t) ((deg < 0 ? (deg + 360.0) : double(deg)) * 11930464.7084))
+	bam((u32_t) ((deg < 0.0f ? (deg + 360.0f) : deg) * 11930464.7084f))
 {
 	/* nothing needed */
 }

@@ -302,9 +302,9 @@ inline fix_c xvec3_c::ApproxLength() const
 	fix_c ay (fxabs(y));
 	fix_c az (fxabs(z));
 
-	fix_c axy ((ax > ay) ? (ax + ay >> 1) : (ay + ax >> 1));
+	fix_c axy ((ax > ay) ? ((ax + ay) >> 1) : ((ay + ax) >> 1));
 
-	return (axy > az) ? (axy + az >> 1) : (az + axy >> 1);
+	return (axy > az) ? ((axy + az) >> 1) : ((az + axy) >> 1);
 }
 
 inline xvec2_c xvec3_c::Get2D() const

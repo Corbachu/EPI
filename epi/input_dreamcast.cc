@@ -67,8 +67,10 @@
 namespace
 {
     // Current and previous button masks (EPI format)
-    epi::u32_t g_cur_buttons  = 0;
-    epi::u32_t g_prev_buttons = 0;
+    u32_t g_cur_buttons  = 0;
+    u32_t g_prev_buttons = 0;
+
+    static const unsigned char kTriggerButtonThreshold = 32;
 
     epi::input::AnalogAxes g_axes  = {};
     // Dreamcast has no touch / motion hardware; keep zero structs.
@@ -139,6 +141,11 @@ void Poll(void)
     g_cur_buttons = dreamcast::MapKOSButtons(
         static_cast<unsigned int>(st->buttons));
 
+    if (static_cast<unsigned char>(st->ltrig) > kTriggerButtonThreshold)
+        g_cur_buttons |= BTN_L1;
+    if (static_cast<unsigned char>(st->rtrig) > kTriggerButtonThreshold)
+        g_cur_buttons |= BTN_R1;
+
     // Analogue left stick (joyx, joyy) and triggers (rtrig, ltrig).
     g_axes.left_x    =  axis_norm(static_cast<unsigned char>(st->joyx));
     g_axes.left_y    = -axis_norm(static_cast<unsigned char>(st->joyy)); // Y is inverted
@@ -193,8 +200,6 @@ u32_t MapKOSButtons(unsigned int kos)
     if (kos & CONT_Y)          out |= BTN_Y;
 
     if (kos & CONT_START)      out |= BTN_START;
-    if (kos & CONT_L)          out |= BTN_L1;
-    if (kos & CONT_R)          out |= BTN_R1;
 
     return out;
 }
@@ -221,18 +226,10 @@ void RumbleStart(int intensity, bool include_motor)
     purupuru_effect_t effect;
     std::memset(&effect, 0, sizeof(effect));
 
-    // effect1: main eccentric-mass motor (continuous)
-    if (include_motor)
-    {
-        effect.effect1 = (uint8_t)(PURUPURU_EFFECT_PULSE
-            | PURUPURU_EFFECT_LATCH_ON
-            | ((uint8_t)intensity & 0x07));
-    }
-
-    // effect2: buzzer / micro-vibration motor
-    effect.effect2 = (uint8_t)(PURUPURU_EFFECT_PULSE
-        | PURUPURU_EFFECT_LATCH_ON
-        | ((uint8_t)(intensity >> 1) & 0x07));
+    effect.motor = include_motor ? 1 : 8;
+    effect.fpow = (uint32_t)intensity;
+    effect.freq = 0;
+    effect.inc = 30;
 
     purupuru_rumble(dev, &effect);
 }

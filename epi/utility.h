@@ -22,6 +22,8 @@
 #include <vector>
 
 #include "arrays.h"
+#include "types.h"
+#include "str_format.h"
 
 namespace epi
 {
@@ -182,7 +184,6 @@ namespace epi
 	std::vector<std::string> STR_Split   (const std::string &s, char delim);
 	std::vector<std::string> STR_SplitStr(const std::string &s, const std::string &delim);
 	std::string STR_Join(const std::vector<std::string> &parts, const std::string &sep);
-	std::string STR_Replace(const std::string &s, const std::string &from, const std::string &to);
 
     //------------------------------------------------------------------------
     // Hash utilities

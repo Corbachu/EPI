@@ -26,7 +26,7 @@ namespace epi
 
 std::string angle_c::ToStr(int precision) const
 {
-	return STR_Format("%1.*f", precision, Degrees());
+	return STR_Format("%1.*f", precision, static_cast<double>(Degrees()));
 }
 
 

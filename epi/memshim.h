@@ -21,12 +21,16 @@
 
 #pragma once
 
-// NOTE: In DITD we keep FitdLib/System/dc_fastmem.h's fitd_memcpy/fitd_memset
-// as the canonical Dreamcast wrappers (they handle SQ safety and small-copy
-// overhead). This shim intentionally maps to libc so callers don't accidentally
-// bypass those guards.
-
+#ifdef _arch_dreamcast
+#include <fastmem/fastmem.h>
+#ifndef fm_memcpy
+#define fm_memcpy memcpy
+#endif
+#ifndef fm_memset
+#define fm_memset memset
+#endif
+#else
 #include <string.h>
-
 #define fm_memcpy memcpy
 #define fm_memset memset
+#endif

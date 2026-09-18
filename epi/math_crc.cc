@@ -91,8 +91,8 @@ crc32_c& crc32_c::operator+= (float value)
 	int mant = static_cast<int> (ldexp(frexp(value, &exp), 30));
 
 	*this += static_cast<byte> (neg ? '-' : '+');
-	*this += exp;
-	*this += mant;
+	*this += static_cast<s32_t>(exp);
+	*this += static_cast<s32_t>(mant);
 
 	return *this;
 }

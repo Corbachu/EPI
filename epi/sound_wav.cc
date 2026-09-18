@@ -2,7 +2,7 @@
 //  WAV Format Sound Loading
 //----------------------------------------------------------------------------
 // 
-//  Copyright (c) 2007-2008  The EDGE Team.
+//  Copyright (c) 2007-2026  The EDGE Team.
 // 
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -486,8 +486,10 @@ static int read_sample_fmt_adpcm(s16_t *buffer, int max_samples)
  */
 static void free_fmt_adpcm(fmt_t *fmt)
 {
-    delete fmt->fmt.adpcm.aCoef;
-    delete fmt->fmt.adpcm.blockheaders;
+    delete[] fmt->fmt.adpcm.aCoef;
+    delete[] fmt->fmt.adpcm.blockheaders;
+	fmt->fmt.adpcm.aCoef = nullptr;
+	fmt->fmt.adpcm.blockheaders = nullptr;
 }
 
 
@@ -550,7 +552,8 @@ static bool read_fmt(file_c *f, fmt_t *fmt)
 			break;
 	}
 
-	I_Debugf("WAV Loader: Format 0x%X is unknown.\n", (u32_t) fmt->wFormatTag);
+    I_Debugf("WAV Loader: Format 0x%X is unknown.\n",
+        static_cast<unsigned int>(fmt->wFormatTag));
 
 	return false;
 }
@@ -606,6 +609,15 @@ bool WAV_LoadEx(sound_data_c *buf, file_c *f, bool preserve_stereo)
 
     wav_t *w = &decoder_wavt;
 	fmt_t *fmt = w->fmt;
+    struct AdpcmCleanup
+    {
+        fmt_t *fmt;
+        ~AdpcmCleanup()
+        {
+            if (fmt->wFormatTag == FMT_ADPCM)
+                free_fmt_adpcm(fmt);
+        }
+    } adpcm_cleanup = {fmt};
 
 
 	u32_t header_id;

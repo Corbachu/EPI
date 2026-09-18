@@ -27,16 +27,16 @@ namespace epi
 std::string xbox2_c::ToStr(int precision) const
 {
 	return STR_Format("[%1.*f:%1.*f %1.*f:%1.*f]",
-			precision, lo.x.ToFloat(), precision, hi.x.ToFloat(),
-			precision, lo.y.ToFloat(), precision, hi.y.ToFloat());
+			precision, static_cast<double>(lo.x.ToFloat()), precision, static_cast<double>(hi.x.ToFloat()),
+			precision, static_cast<double>(lo.y.ToFloat()), precision, static_cast<double>(hi.y.ToFloat()));
 }
 
 std::string xbox3_c::ToStr(int precision) const
 {
 	return STR_Format("[%1.*f:%1.*f %1.*f:%1.*f %1.*f:%1.*f]",
-			precision, lo.x.ToFloat(), precision, hi.x.ToFloat(),
-			precision, lo.y.ToFloat(), precision, hi.y.ToFloat(),
-			precision, lo.z.ToFloat(), precision, hi.z.ToFloat());
+			precision, static_cast<double>(lo.x.ToFloat()), precision, static_cast<double>(hi.x.ToFloat()),
+			precision, static_cast<double>(lo.y.ToFloat()), precision, static_cast<double>(hi.y.ToFloat()),
+			precision, static_cast<double>(lo.z.ToFloat()), precision, static_cast<double>(hi.z.ToFloat()));
 }
 
 } // namespace epi

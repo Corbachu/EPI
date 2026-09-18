@@ -84,7 +84,7 @@ unsigned int sub_file_c::Read(void *dest, unsigned int size)
 	if (physfs)
 	{
 		// PHYSFS controlled file
-		int read_len = PHYSFS_read((PHYSFS_File*)parent, dest, size);
+		int read_len = (int)PHYSFS_read((PHYSFS_File*)parent, dest, 1, size);
 		//I_Printf("  PHYSFS_read: returned %d bytes\n", read_len);
 		remain -= read_len;
 

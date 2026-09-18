@@ -216,6 +216,28 @@ namespace epi
 		return reinterpret_cast<void*>(hdr + 1);
 	}
 
+	void* DualAllocExtra(unsigned int bytes)
+	{
+		if (bytes == 0)
+			bytes = 1;
+
+		if (!the_mem_manager || bytes > SIZE_MAX - sizeof(DualAllocHeader))
+			return nullptr;
+
+		const std::size_t total = sizeof(DualAllocHeader) + static_cast<std::size_t>(bytes);
+		void* raw = the_mem_manager->Alloc(total);
+		if (!raw)
+			return nullptr;
+
+		DualAllocHeader* hdr = reinterpret_cast<DualAllocHeader*>(raw);
+		hdr->magic = kDualAllocMagic;
+		hdr->source = static_cast<std::uint32_t>(DualAllocSource::EXTRA);
+		hdr->size = static_cast<std::uint32_t>(bytes);
+		hdr->reserved = 0;
+
+		return reinterpret_cast<void*>(hdr + 1);
+	}
+
 	void DualFree(void* ptr)
 	{
 		if (!ptr)

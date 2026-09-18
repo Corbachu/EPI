@@ -27,17 +27,20 @@
 #include <string.h>
 #include <ctype.h>
 
-#ifdef UNIX
+#if defined(UNIX) || defined(_arch_dreamcast)
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>   // usleep()
 #endif
 
+#include "epi.h"
 #include "types.h"
 #include "macros.h"
 #include "asserts.h"
 //#include "aplib/assert.h"
 //#include "utility_misc.h"
+
+char *StringDup(const char *orig, int limit = -1);
 
 
 int StringCaseCmp(const char *A, const char *B)
@@ -99,7 +102,7 @@ char *StringNew(int length)
 	char *s = (char *) calloc(length + 1, 1);
 
 	if (! s)
-		AssertFail("Out of memory (%d bytes for string)\n", length);
+		I_Error("Out of memory (%d bytes for string)\n", length);
 
 	return s;
 }
@@ -112,7 +115,7 @@ char *StringDup(const char *orig, int limit)
 		char *s = strdup(orig);
 
 		if (! s)
-			AssertFail("Out of memory (copy string)\n");
+			I_Error("Out of memory (copy string)\n");
 
 		return s;
 	}
@@ -142,7 +145,7 @@ char *StringPrintf(const char *str, ...)
 
 		buf = (char*)realloc(buf, buf_size);
 		if (!buf)
-			AssertFail("Out of memory (formatting string)");
+			I_Error("Out of memory (formatting string)");
 
 		va_start(args, str);
 		out_len = vsnprintf(buf, buf_size, str, args);

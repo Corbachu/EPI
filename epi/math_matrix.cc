@@ -47,9 +47,9 @@ std::string mat3_c::ToStr() const
 		"\n(%1.4f  %1.4f  %1.4f)"
 	    "\n(%1.4f  %1.4f  %1.4f)"
 	    "\n(%1.4f  %1.4f  %1.4f)",
-		m[0], m[3], m[6],
-		m[1], m[4], m[7],
-		m[2], m[5], m[8]);
+		static_cast<double>(m[0]), static_cast<double>(m[3]), static_cast<double>(m[6]),
+		static_cast<double>(m[1]), static_cast<double>(m[4]), static_cast<double>(m[7]),
+		static_cast<double>(m[2]), static_cast<double>(m[5]), static_cast<double>(m[8]));
 }
 
 mat3_c& mat3_c::Negate()
@@ -145,7 +145,7 @@ mat4_c::mat4_c(const mat3_c& rhs, float w)
 	for (int x = 0; x < 4; x++)
 	for (int y = 0; y < 4; y++)
 	{
-		m[x*4+y] = (x < 3 && y < 3) ? rhs.m[x*3+y] : 0.0;
+		m[x*4+y] = (x < 3 && y < 3) ? rhs.m[x*3+y] : 0.0f;
 	}
 
 	m[15] = w;
@@ -158,10 +158,10 @@ std::string mat4_c::ToStr() const
 	    "\n(%1.4f  %1.4f  %1.4f  %1.4f)"
 	    "\n(%1.4f  %1.4f  %1.4f  %1.4f)"
 	    "\n(%1.4f  %1.4f  %1.4f  %1.4f)",
-		m[0], m[4], m[8],  m[12],
-		m[1], m[5], m[9],  m[13],
-		m[2], m[6], m[10], m[14],
-		m[3], m[7], m[11], m[15]);
+		static_cast<double>(m[0]), static_cast<double>(m[4]), static_cast<double>(m[8]),  static_cast<double>(m[12]),
+		static_cast<double>(m[1]), static_cast<double>(m[5]), static_cast<double>(m[9]),  static_cast<double>(m[13]),
+		static_cast<double>(m[2]), static_cast<double>(m[6]), static_cast<double>(m[10]), static_cast<double>(m[14]),
+		static_cast<double>(m[3]), static_cast<double>(m[7]), static_cast<double>(m[11]), static_cast<double>(m[15]));
 }
 
 mat4_c& mat4_c::Negate()

@@ -56,9 +56,9 @@ fix_c xvec2_c::AlongDist(const xvec2_c& point) const
 
 std::string xvec2_c::ToStr(int precision) const
 {
-	return STR_Format("(%1.*f,%1.*f,%1.*f)",
-				 precision, x.ToFloat(),
-				 precision, y.ToFloat());
+	return STR_Format("(%1.*f,%1.*f)",
+				 precision, static_cast<double>(x.ToFloat()),
+				 precision, static_cast<double>(y.ToFloat()));
 }
 
 //------------------------------------------------------------------------
@@ -92,7 +92,7 @@ fix_c xvec3_c::ApproxSlope() const
 	fix_c ay (fxabs(y));
 
 	// approximate distance
-	fix_c dist ((ax > ay) ? (ax + ay >> 1) : (ay + ax >> 1));
+	fix_c dist ((ax > ay) ? ((ax + ay) >> 1) : ((ay + ax) >> 1));
 	fix_c SM_Z (fxabs(z) >> 14);
 
 	// prevent overflow or division by zero
@@ -121,9 +121,9 @@ xvec3_c xvec3_c::Cross(const xvec3_c& rhs) const
 std::string xvec3_c::ToStr(int precision) const
 {
     return STR_Format("(%1.*f,%1.*f,%1.*f)",
-                      precision, x.ToFloat(),
-                      precision, y.ToFloat(),
-                      precision, z.ToFloat());
+					  precision, static_cast<double>(x.ToFloat()),
+					  precision, static_cast<double>(y.ToFloat()),
+					  precision, static_cast<double>(z.ToFloat()));
 }
 
 } // namespace epi

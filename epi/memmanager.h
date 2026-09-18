@@ -39,6 +39,9 @@ public:
     explicit mem_manager_c(unsigned int total_bytes);
     ~mem_manager_c();
 
+    mem_manager_c(const mem_manager_c&) = delete;
+    mem_manager_c& operator=(const mem_manager_c&) = delete;
+
     void* Alloc(std::size_t bytes);
     void  Free(void* ptr);
     void* Realloc(void* ptr, std::size_t new_size);
@@ -52,6 +55,8 @@ public:
     static void SetDebug(bool on);
 
 private:
+    static constexpr std::size_t ALIGNMENT = 8u;
+
     struct BlockHeader 
     {
         std::uint32_t magic;
@@ -62,12 +67,17 @@ private:
     };
 
     BlockHeader* head_;
+    void* allocation_;
     void* arena_;
     unsigned int total_bytes_;
     unsigned int used_bytes_;
 
     static constexpr std::uint32_t MAGIC = 0x45504930u; // 'E' 'P' 'I' '0' in ASCII
-    static constexpr std::size_t ALIGNMENT = 8u;
+    static constexpr std::size_t HEADER_SIZE =
+        (sizeof(BlockHeader) + ALIGNMENT - 1u) & ~(ALIGNMENT - 1u);
+
+    static_assert((ALIGNMENT & (ALIGNMENT - 1u)) == 0, "alignment must be a power of two");
+    static_assert(ALIGNMENT >= alignof(BlockHeader), "block headers exceed arena alignment");
 
     static bool debug_;
 

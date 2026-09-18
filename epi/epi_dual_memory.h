@@ -11,6 +11,7 @@ namespace epi
 	unsigned int GetExtraMemoryPoolBytes(void);
 	bool HasExtraMemoryPool(void);
 	void* DualAlloc(unsigned int bytes, int preferExtra = 1);
+	void* DualAllocExtra(unsigned int bytes);
 	void* DualRealloc(void* ptr, unsigned int newSize, int preferExtra = 1);
 	void DualFree(void* ptr);
 }

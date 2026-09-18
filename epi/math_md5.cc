@@ -168,6 +168,76 @@ void md5hash_c::packhash_c::Encode(byte *hash)
 //------------------------------------------------------------------------
 
 
+md5hash_c::context_c::context_c() : packed_(), buffer_(), buffer_len_(0), bit_length_(0)
+{ }
+
+void md5hash_c::context_c::Update(const byte *message, unsigned int len)
+{
+	if (len == 0)
+		return;
+
+	bit_length_ += (unsigned long long)len * 8ULL;
+
+	if (buffer_len_ > 0)
+	{
+		unsigned int avail = 64 - buffer_len_;
+
+		if (len < avail)
+		{
+			memcpy(buffer_ + buffer_len_, message, len);
+			buffer_len_ += len;
+			return;
+		}
+
+		memcpy(buffer_ + buffer_len_, message, avail);
+		packed_.TransformBytes(buffer_);
+		message += avail;
+		len -= avail;
+		buffer_len_ = 0;
+	}
+
+	while (len >= 64)
+	{
+		packed_.TransformBytes(message);
+		message += 64;
+		len -= 64;
+	}
+
+	if (len > 0)
+	{
+		memcpy(buffer_, message, len);
+		buffer_len_ = len;
+	}
+}
+
+void md5hash_c::context_c::Finish(byte *hash)
+{
+	byte final_buffer[128];
+	unsigned int len = buffer_len_;
+
+	if (len > 0)
+		memcpy(final_buffer, buffer_, len);
+
+	final_buffer[len++] = 0x80;
+
+	while ((len % 64) != 56)
+		final_buffer[len++] = 0;
+
+	for (int i = 0; i < 8; i++)
+		final_buffer[len++] = (bit_length_ >> (i * 8)) & 0xff;
+
+	packed_.TransformBytes(final_buffer);
+
+	if (len == 128)
+		packed_.TransformBytes(final_buffer + 64);
+
+	packed_.Encode(hash);
+}
+
+
+//------------------------------------------------------------------------
+
+
 md5hash_c::md5hash_c()
 {
   memset(hash, 0, sizeof(hash));
@@ -180,59 +250,9 @@ md5hash_c::md5hash_c(const byte *message, unsigned int len)
 
 void md5hash_c::Compute(const byte *message, unsigned int len)
 {
-	packhash_c packed;
-
-	int bit_length = len * 8;
-
-	for (; len >= 64; message += 64, len -= 64)
-	{
-		packed.TransformBytes(message);
-	}
-
-	byte buffer[128];
-
-	if (len > 0)
-	{
-		memcpy(buffer, message, len);
-	}
-
-	/* add single "1" bit */
-
-	buffer[len++] = 0x80;
-
-	/* pad remaining area with zero bits, so that the length becomes
-	 * congruous with 448 bits (56 bytes).
-	 */
-
-	while ((len % 64) != 56)
-	{
-		buffer[len++] = 0;
-	}
-
-	buffer[len++] = (bit_length      ) & 0xff;
-	buffer[len++] = (bit_length >>  8) & 0xff;
-	buffer[len++] = (bit_length >> 16) & 0xff;
-	buffer[len++] = (bit_length >> 24) & 0xff;
-
-	/* NOTE: we don't support more than 32 bit lengths.  The ANSI C
-	 * standard says that the result of >> is undefined if the shift
-	 * amount is greater than the number of bits in the left operand.
-	 */
-	buffer[len++] = 0;
-	buffer[len++] = 0;
-	buffer[len++] = 0;
-	buffer[len++] = 0;
-
-	/// ASSERT(len == 64 || len == 128);
-
-	packed.TransformBytes(buffer);
-
-	if (len == 128)
-	{
-		packed.TransformBytes(buffer + 64);
-	}
-
-	packed.Encode(hash);
+	context_c ctx;
+	ctx.Update(message, len);
+	ctx.Finish(hash);
 }
 
 } // namespace epi
