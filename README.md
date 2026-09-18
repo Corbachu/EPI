@@ -5,7 +5,11 @@
 EPI (EDGE Platform Interface) is a lightweight C++ game library designed for
 cross-platform game development.  Its design prioritises constrained and
 embedded targets – particularly the **Sega Dreamcast** and **Sony PlayStation
-Vita** – while remaining fully usable on Linux, macOS, and Windows.
+Vita** – while remaining fully usable on Linux, macOS, and Windows.  The
+current libEPI tree also includes newer subsystems brought across from
+**EDGE** and **Dream in the Dark**, including camera helpers, WAD/archive
+editing, extra image and sound codecs, DSP filters, and the optional RGL
+render layer.
 
 ---
 
@@ -62,6 +66,14 @@ cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/Vita.cmake \
       -B build/vita
 cmake --build build/vita
 ```
+
+### Optional CMake features
+
+* `-DEPI_ENABLE_SH4_ACCEL=ON` – enable Dreamcast SH-4 fixed-point math helpers
+* `-DEPI_ENABLE_RGL=ON` – build the optional render layer (`r_texcache`,
+  `r_shader`, `r_effect`, `model_skin`); enabled automatically on Dreamcast
+* `-DEPI_ENABLE_PHYSFS=ON` – enable PhysicsFS-backed virtual file access
+* `-DEPI_ENABLE_COAL2=ON` – enable COAL2 scripting integration hooks
 
 ---
 
@@ -186,6 +198,25 @@ while (running) {
 
 ---
 
+## Additional EDGE / Dream in the Dark Imports
+
+Recent libEPI additions imported from EDGE / Dream in the Dark include:
+
+* **Camera system** – `camera.h` adds a reusable 3D camera with perspective /
+  orthographic projections, frustum extraction, coarse visibility tests, and
+  interpolation helpers.
+* **Archive editing** – `archive.h` and `archive_wad.h` expose archive and WAD
+  inspection / mutation APIs suitable for tooling and runtime asset handling.
+* **Extra image codecs** – Dreamcast-specific KMG support now sits alongside a
+  validated PVR loader / decoder for RGB565 VQ textures.
+* **Audio utilities** – sound loading covers WAV / VOC detection, `mus_2_midi`
+  converts classic MUS data to MIDI, and `DSP_filter.h` adds reusable low-pass
+  / high-pass filtering.
+* **Optional render layer** – the imported RGL pieces provide texture cache,
+  shader, model skin, and render-effect helpers for OpenGL / GLdc-based code.
+
+---
+
 ## 3D Model Loading
 
 EPI supports several 3D model formats through a common `model_data_c`
@@ -240,19 +271,20 @@ epi::model_data_c *mdl = epi::MDL_Load(body_file,
 
 | Module              | Files                                   | Description                              |
 |---------------------|-----------------------------------------|------------------------------------------|
+| Camera              | `camera.*`                              | Reusable 3D camera, projection, frustum culling |
 | Platform backend    | `epi_dreamcast.*`, `epi_vita.*`, …      | Init/Shutdown + dual-memory allocator    |
 | Input               | `input.h`, `input_dreamcast.*`, `input_vita.*` | Cross-platform input abstraction  |
 | Memory manager      | `memmanager.*`, `epi_dual_memory.h`     | Slab allocator + dual-pool helpers       |
 | Fixed-point math    | `fxp_*.h/cc`, `fxp_vector_sh4.h`       | SH-4-accelerated fixed-point math        |
-| Image loading       | `image_*.h/cc`, `stb_image.*`           | PNG, JPEG, TGA, KMG image codecs         |
-| Sound               | `sound_*.h/cc`                          | WAV, VOC, MUS→MIDI conversion            |
+| Image loading       | `image_*.h/cc`, `stb_image.*`           | PNG, JPEG, TGA, KMG, PVR image codecs    |
+| Sound / DSP         | `sound_*.h/cc`, `mus_2_midi.*`, `DSP_filter.*`, `lowpass_filter.*` | WAV, VOC, MUS→MIDI conversion, filtering |
 | Archives            | `archive.*`, `archive_wad.*`            | WAD archive inspection and editing APIs  |
 | Timer / framerate   | `timer_utility.*`                       | ms/µs/tics, delta-time, FPS, frame limiter |
 | 3D models           | `model_*.h/cc`                          | MD2 (+ interpolation), MD3, HLMDL, MD5, AITD body |
 | Legacy id helpers   | `kmq2/*`                                | Quake II byte-order, hunk, and parsing helpers |
 | Containers          | `arrays.*`, `tarray.h`, `pri_heap.*`    | Lightweight collections                  |
 | Math                | `math_*.h/cc`                           | Vectors, matrices, quaternions, colour   |
-| Render helpers      | `rgl_vertex.h`                          | Generic vertex storage for GL pipelines  |
+| Render layer        | `r_texcache.*`, `r_shader.*`, `r_effect.*`, `model_skin.*`, `rgl_vertex.h` | Optional OpenGL / GLdc rendering helpers |
 | Filesystem          | `filesystem.*`, `file.*`, `path.*`      | Platform-abstracted file I/O             |
 
 ---
