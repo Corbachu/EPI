@@ -2,7 +2,7 @@
 //  HQ2X : High-Quality 2x Graphics Resizing
 //------------------------------------------------------------------------
 // 
-//  Copyright (c) 2007  The EDGE Team.
+//  Copyright (c) 2007-2026  The EDGE Team.
 // 
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@
 //
 //        Changed the YUV calculation to something more standard.
 //        The LerpColor method and support for transparent pixels
-//        was copied from the Doomsday engine by Jaakko Ker‰nen.
+//        was copied from the Doomsday engine by Jaakko Ker√§nen.
 //
 
 #include "epi.h"
@@ -175,9 +175,9 @@ inline bool Diff(const u8_t p1, const u8_t p2)
 	u32_t YUV2 = PixelYUV[p2];
 
 	return (YUV1 & Amask) != (YUV2 & Amask) ||
-		   std::abs(static_cast<int>((YUV1 & Ymask) - (YUV2 & Ymask))) > trY ||
-		   std::abs(static_cast<int>((YUV1 & Umask) - (YUV2 & Umask))) > trU ||
-		   std::abs(static_cast<int>((YUV1 & Vmask) - (YUV2 & Vmask))) > trV;
+		   std::abs(static_cast<int>(YUV1 & Ymask) - static_cast<int>(YUV2 & Ymask)) > static_cast<int>(trY) ||
+		   std::abs(static_cast<int>(YUV1 & Umask) - static_cast<int>(YUV2 & Umask)) > static_cast<int>(trU) ||
+		   std::abs(static_cast<int>(YUV1 & Vmask) - static_cast<int>(YUV2 & Vmask)) > static_cast<int>(trV);
 }
 
 void Setup(const u8_t *palette, int trans_pixel)

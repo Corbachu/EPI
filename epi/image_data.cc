@@ -2,7 +2,7 @@
 //  Basic image storage
 //------------------------------------------------------------------------
 //
-//  Copyright (c) 2003-2008  The EDGE Team.
+//  Copyright (c) 2003-2026  The EDGE Team.
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -725,16 +725,16 @@ image_data_c *image_data_c::MakeNormalMap(float scale) const
 			int ym1 = (y - 1 + height) % height;
 			int yp1 = (y + 1) % height;
 
-			auto height = [&](int px, int py) -> float
+			auto sample_luminance = [&](int px, int py) -> float
 			{
 				const u8_t *p = PixelAt(px, py);
 				return (p[0] * 0.30f + p[1] * 0.59f + p[2] * 0.11f) / 255.0f;
 			};
 
-			float tl = height(xm1, ym1);  float t  = height(x,   ym1);
-			float tr = height(xp1, ym1);  float l  = height(xm1, y);
-			float r  = height(xp1, y);    float bl = height(xm1, yp1);
-			float b  = height(x,   yp1);  float br = height(xp1, yp1);
+			float tl = sample_luminance(xm1, ym1);  float t  = sample_luminance(x,   ym1);
+			float tr = sample_luminance(xp1, ym1);  float l  = sample_luminance(xm1, y);
+			float r  = sample_luminance(xp1, y);    float bl = sample_luminance(xm1, yp1);
+			float b  = sample_luminance(x,   yp1);  float br = sample_luminance(xp1, yp1);
 
 			// Sobel
 			float dx = (tr + 2.0f*r + br) - (tl + 2.0f*l + bl);
