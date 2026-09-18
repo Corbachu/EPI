@@ -47,7 +47,7 @@ void model_data_c::BuildVertexArray(int body_idx, int frame_idx,
 		for (int k = 0; k < 3; k++)
 		{
 			u16_t vi = tri.index[k];
-			SYS_ASSERT(vi < (u16_t)fv.size());
+			SYS_ASSERT(static_cast<size_t>(vi) < fv.size());
 
 			const model_vert_c &mv = fv[vi];
 			RGL_Vertex3f v;

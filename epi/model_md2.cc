@@ -304,12 +304,13 @@ model_data_c *MD2Loader::Load(file_c *f)
 
 	if (hdr.magic != MD2_MAGIC)
 	{
-		I_Warning("MD2: bad magic 0x%08x\n", hdr.magic);
+		I_Warning("MD2: bad magic 0x%08lx\n", static_cast<unsigned long>(hdr.magic));
 		return NULL;
 	}
 	if (hdr.version != MD2_VERSION)
 	{
-		I_Warning("MD2: unsupported version %d (expected %d)\n", hdr.version, MD2_VERSION);
+		I_Warning("MD2: unsupported version %ld (expected %d)\n",
+			static_cast<long>(hdr.version), MD2_VERSION);
 		return NULL;
 	}
 	if (hdr.num_verts <= 0 || hdr.num_tris <= 0 || hdr.num_frames <= 0)

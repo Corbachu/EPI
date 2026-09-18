@@ -70,6 +70,10 @@ model_data_c *MDL_Load(file_c *f, model_format_e fmt)
 
 	switch (fmt)
 	{
+		case MDL_FORMAT_AUTO:
+			I_Warning("MDL_Load: automatic format reached explicit loader selection\n");
+			return NULL;
+
 		case MDL_FORMAT_MD2:      loader = MDL_GetMD2Loader();      break;
 		case MDL_FORMAT_MD3:      loader = MDL_GetMD3Loader();      break;
 		case MDL_FORMAT_HLMDL:    loader = MDL_GetHLMDLLoader();    break;

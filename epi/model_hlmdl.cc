@@ -21,7 +21,11 @@
 #include "model_hlmdl.h"
 
 #include <cmath>
+#include <cstddef>
 #include <cstring>
+#include <limits>
+#include <memory>
+#include <vector>
 
 namespace epi
 {
@@ -135,6 +139,69 @@ struct hlmdl_trivert_t
 #pragma pack(pop)
 
 
+class HlmdlReader
+{
+public:
+	HlmdlReader(const std::vector<u8_t> &data, size_t limit)
+		: data_(data), limit_(limit)
+	{ }
+
+	bool span(size_t offset, size_t count, size_t stride) const
+	{
+		return stride > 0 && offset <= limit_ && count <= (limit_ - offset) / stride;
+	}
+
+	bool read_s16(size_t offset, s16_t &value) const
+	{
+		if (!span(offset, 1, sizeof(value)))
+			return false;
+
+		std::memcpy(&value, data_.data() + offset, sizeof(value));
+		value = EPI_LE_S16(value);
+		return true;
+	}
+
+	bool read_s32(size_t offset, s32_t &value) const
+	{
+		if (!span(offset, 1, sizeof(value)))
+			return false;
+
+		std::memcpy(&value, data_.data() + offset, sizeof(value));
+		value = EPI_LE_S32(value);
+		return true;
+	}
+
+	bool read_float(size_t offset, float &value) const
+	{
+		u32_t bits = 0;
+		if (!span(offset, 1, sizeof(bits)))
+			return false;
+
+		std::memcpy(&bits, data_.data() + offset, sizeof(bits));
+		bits = EPI_LE_U32(bits);
+		std::memcpy(&value, &bits, sizeof(value));
+		return true;
+	}
+
+	bool read_name(size_t offset, size_t width, std::string &value) const
+	{
+		if (!span(offset, width, 1))
+			return false;
+
+		size_t length = 0;
+		while (length < width && data_[offset + length] != 0)
+			length++;
+
+		value.assign(reinterpret_cast<const char *>(data_.data() + offset), length);
+		return true;
+	}
+
+private:
+	const std::vector<u8_t> &data_;
+	size_t limit_;
+};
+
+
 //------------------------------------------------------------------------
 // HLMDLLoader::Probe
 //------------------------------------------------------------------------
@@ -158,10 +225,16 @@ bool HLMDLLoader::Probe(file_c *f)
 //
 model_data_c *HLMDLLoader::Load(file_c *f)
 {
-	// Slurp entire file into memory (simplifies random-access parsing)
-	f->Seek(0, file_c::SEEKPOINT_END);
+	if (!f->Seek(0, file_c::SEEKPOINT_END))
+		return NULL;
+
 	int file_len = f->GetLength();
-	f->Seek(0, file_c::SEEKPOINT_START);
+	if (file_len < (int)sizeof(hlmdl_header_t) ||
+		!f->Seek(0, file_c::SEEKPOINT_START))
+	{
+		I_Warning("HLMDL: file too small\n");
+		return NULL;
+	}
 
 	std::vector<u8_t> raw((size_t)file_len);
 	if (f->Read(raw.data(), (unsigned)file_len) != (unsigned)file_len)
@@ -170,217 +243,342 @@ model_data_c *HLMDLLoader::Load(file_c *f)
 		return NULL;
 	}
 
-	if (file_len < (int)sizeof(hlmdl_header_t))
+	HlmdlReader physical_reader(raw, raw.size());
+	s32_t magic = 0;
+	s32_t version = 0;
+	s32_t data_length = 0;
+	if (!physical_reader.read_s32(offsetof(hlmdl_header_t, magic), magic) ||
+		!physical_reader.read_s32(offsetof(hlmdl_header_t, version), version) ||
+		!physical_reader.read_s32(offsetof(hlmdl_header_t, data_length), data_length))
 	{
-		I_Warning("HLMDL: file too small\n");
+		I_Warning("HLMDL: truncated header\n");
 		return NULL;
 	}
-
-	const hlmdl_header_t *hdr = (const hlmdl_header_t *)raw.data();
-
-	if (EPI_LE_S32(hdr->magic) != HLMDL_MAGIC_IDST)
+	if (magic != HLMDL_MAGIC_IDST)
 	{
 		I_Warning("HLMDL: bad magic\n");
 		return NULL;
 	}
-	if (EPI_LE_S32(hdr->version) != HLMDL_VERSION)
+	if (version != HLMDL_VERSION)
 	{
-		I_Warning("HLMDL: unsupported version %d\n", EPI_LE_S32(hdr->version));
+		I_Warning("HLMDL: unsupported version %ld\n", static_cast<long>(version));
+		return NULL;
+	}
+	if (data_length < (s32_t)sizeof(hlmdl_header_t) || data_length > file_len)
+	{
+		I_Warning("HLMDL: invalid declared file length\n");
 		return NULL;
 	}
 
-	int num_bodyparts = EPI_LE_S32(hdr->num_bodyparts);
-	int ofs_bodyparts = EPI_LE_S32(hdr->ofs_bodyparts);
-	int num_textures  = EPI_LE_S32(hdr->num_textures);
-	int ofs_textures  = EPI_LE_S32(hdr->ofs_textures);
-
-	if (num_bodyparts <= 0)
+	HlmdlReader reader(raw, (size_t)data_length);
+	s32_t num_bodyparts = 0;
+	s32_t ofs_bodyparts = 0;
+	s32_t num_textures = 0;
+	s32_t ofs_textures = 0;
+	s32_t num_skinrefs = 0;
+	s32_t num_skin_families = 0;
+	s32_t ofs_skin_families = 0;
+	if (!reader.read_s32(offsetof(hlmdl_header_t, num_bodyparts), num_bodyparts) ||
+		!reader.read_s32(offsetof(hlmdl_header_t, ofs_bodyparts), ofs_bodyparts) ||
+		!reader.read_s32(offsetof(hlmdl_header_t, num_textures), num_textures) ||
+		!reader.read_s32(offsetof(hlmdl_header_t, ofs_textures), ofs_textures) ||
+		!reader.read_s32(offsetof(hlmdl_header_t, num_skins), num_skinrefs) ||
+		!reader.read_s32(offsetof(hlmdl_header_t, num_skingroups), num_skin_families) ||
+		!reader.read_s32(offsetof(hlmdl_header_t, ofs_skingroups), ofs_skin_families))
 	{
-		I_Warning("HLMDL: no body parts\n");
+		I_Warning("HLMDL: truncated header tables\n");
 		return NULL;
 	}
 
-	model_data_c *mdl = new model_data_c();
+	if (num_bodyparts <= 0 || ofs_bodyparts < 0 ||
+		num_textures <= 0 || ofs_textures < 0 ||
+		num_skinrefs <= 0 || num_skin_families <= 0 || ofs_skin_families < 0 ||
+		!reader.span((size_t)ofs_bodyparts, (size_t)num_bodyparts,
+		             sizeof(hlmdl_bodypart_t)) ||
+		!reader.span((size_t)ofs_textures, (size_t)num_textures,
+		             sizeof(hlmdl_texture_t)) ||
+		(size_t)num_skinrefs > std::numeric_limits<size_t>::max() /
+		                           (size_t)num_skin_families ||
+		!reader.span((size_t)ofs_skin_families,
+		             (size_t)num_skinrefs * (size_t)num_skin_families, sizeof(s16_t)))
+	{
+		I_Warning("HLMDL: invalid model tables\n");
+		return NULL;
+	}
+
+	std::unique_ptr<model_data_c> mdl(new model_data_c());
 	mdl->format_name = "HLMDL";
-	mdl->fps = 0; // static base pose; no animation expansion yet
+	mdl->fps = 0;
 
-	// ------ textures ------
 	for (int ti = 0; ti < num_textures; ti++)
 	{
-		const hlmdl_texture_t *t =
-			(const hlmdl_texture_t *)(raw.data() + ofs_textures +
-			                         ti * sizeof(hlmdl_texture_t));
+		size_t texture_offset = (size_t)ofs_textures +
+		                        (size_t)ti * sizeof(hlmdl_texture_t);
+		std::unique_ptr<model_tex_c> texture(new model_tex_c());
+		s32_t width = 0;
+		s32_t height = 0;
+		if (!reader.read_name(texture_offset + offsetof(hlmdl_texture_t, name),
+		                      sizeof(hlmdl_texture_t::name), texture->name) ||
+			!reader.read_s32(texture_offset + offsetof(hlmdl_texture_t, width), width) ||
+			!reader.read_s32(texture_offset + offsetof(hlmdl_texture_t, height), height) ||
+			width <= 0 || height <= 0)
+		{
+			I_Warning("HLMDL: invalid texture table\n");
+			return NULL;
+		}
 
-		model_tex_c *tex = new model_tex_c();
-		tex->name   = t->name;
-		tex->width  = EPI_LE_S32(t->width);
-		tex->height = EPI_LE_S32(t->height);
-		// Pixel data lives at t->ofs_data in the file;
-		// we store the name only – texture upload is the engine's job.
-		mdl->skins.push_back(tex);
+		texture->width = width;
+		texture->height = height;
+		mdl->skins.push_back(texture.get());
+		texture.release();
 	}
 
-	// Create a single "base pose" frame
+	std::vector<int> default_skin_family((size_t)num_skinrefs);
+	for (int skin_ref = 0; skin_ref < num_skinrefs; skin_ref++)
+	{
+		s16_t texture_index = 0;
+		if (!reader.read_s16((size_t)ofs_skin_families +
+		                     (size_t)skin_ref * sizeof(s16_t), texture_index) ||
+			texture_index < 0 || texture_index >= num_textures)
+		{
+			I_Warning("HLMDL: invalid default skin family\n");
+			return NULL;
+		}
+		default_skin_family[(size_t)skin_ref] = texture_index;
+	}
+
 	mdl->frames.resize(1);
 	mdl->frames[0].name = "base";
+	bool bbox_initialised = false;
 
-	// ------ body parts ------
 	for (int bp = 0; bp < num_bodyparts; bp++)
 	{
-		const hlmdl_bodypart_t *bpart =
-			(const hlmdl_bodypart_t *)(raw.data() + ofs_bodyparts +
-			                           bp * sizeof(hlmdl_bodypart_t));
-
-		int num_models  = EPI_LE_S32(bpart->num_models);
-		int ofs_models  = EPI_LE_S32(bpart->ofs_models);
-
-		if (num_models <= 0) continue;
-
-		// Load only the first sub-model (index 0 = default variant)
-		const hlmdl_model_t *mdata =
-			(const hlmdl_model_t *)(raw.data() + ofs_models);
-
-		int num_mesh  = EPI_LE_S32(mdata->num_mesh);
-		int ofs_mesh  = EPI_LE_S32(mdata->ofs_mesh);
-		int num_verts = EPI_LE_S32(mdata->num_verts);
-		int ofs_verts = EPI_LE_S32(mdata->ofs_verts);
-		int num_norms = EPI_LE_S32(mdata->num_norms);
-		int ofs_norms = EPI_LE_S32(mdata->ofs_norms);
-
-		if (num_verts <= 0 || num_mesh <= 0) continue;
-
-		// The vertex and normal arrays are stored as float[3] sequences
-		const float *raw_verts = (const float *)(raw.data() + ofs_verts);
-		const float *raw_norms = (const float *)(raw.data() + ofs_norms);
-
-		// Iterate meshes – each mesh is one draw call (one skin ref)
-		for (int mi = 0; mi < num_mesh; mi++)
+		size_t bodypart_offset = (size_t)ofs_bodyparts +
+		                         (size_t)bp * sizeof(hlmdl_bodypart_t);
+		std::string bodypart_name;
+		s32_t num_models = 0;
+		s32_t ofs_models = 0;
+		if (!reader.read_name(bodypart_offset + offsetof(hlmdl_bodypart_t, name),
+		                      sizeof(hlmdl_bodypart_t::name), bodypart_name) ||
+			!reader.read_s32(bodypart_offset + offsetof(hlmdl_bodypart_t, num_models),
+			                 num_models) ||
+			!reader.read_s32(bodypart_offset + offsetof(hlmdl_bodypart_t, ofs_models),
+			                 ofs_models) ||
+			num_models < 0 || ofs_models < 0 ||
+			!reader.span((size_t)ofs_models, (size_t)num_models, sizeof(hlmdl_model_t)))
 		{
-			const hlmdl_mesh_t *mesh =
-				(const hlmdl_mesh_t *)(raw.data() + ofs_mesh +
-				                       mi * sizeof(hlmdl_mesh_t));
+			I_Warning("HLMDL: invalid body-part table\n");
+			return NULL;
+		}
+		if (num_models == 0)
+			continue;
 
-			int skin_ref = EPI_LE_S32(mesh->skin_ref);
-			int num_triverts = EPI_LE_S32(mesh->num_tris);
-			int ofs_tris     = EPI_LE_S32(mesh->ofs_tris);
+		size_t model_offset = (size_t)ofs_models;
+		s32_t num_meshes = 0;
+		s32_t ofs_meshes = 0;
+		s32_t num_vertices = 0;
+		s32_t ofs_vertices = 0;
+		s32_t num_normals = 0;
+		s32_t ofs_normals = 0;
+		if (!reader.read_s32(model_offset + offsetof(hlmdl_model_t, num_mesh), num_meshes) ||
+			!reader.read_s32(model_offset + offsetof(hlmdl_model_t, ofs_mesh), ofs_meshes) ||
+			!reader.read_s32(model_offset + offsetof(hlmdl_model_t, num_verts), num_vertices) ||
+			!reader.read_s32(model_offset + offsetof(hlmdl_model_t, ofs_verts), ofs_vertices) ||
+			!reader.read_s32(model_offset + offsetof(hlmdl_model_t, num_norms), num_normals) ||
+			!reader.read_s32(model_offset + offsetof(hlmdl_model_t, ofs_norms), ofs_normals) ||
+			num_meshes < 0 || num_vertices < 0 || num_normals < 0 ||
+			ofs_meshes < 0 || ofs_vertices < 0 || ofs_normals < 0 ||
+			!reader.span((size_t)ofs_meshes, (size_t)num_meshes, sizeof(hlmdl_mesh_t)) ||
+			!reader.span((size_t)ofs_vertices, (size_t)num_vertices, sizeof(float) * 3) ||
+			!reader.span((size_t)ofs_normals, (size_t)num_normals, sizeof(float) * 3))
+		{
+			I_Warning("HLMDL: invalid sub-model tables\n");
+			return NULL;
+		}
+		if (num_meshes == 0 || num_vertices == 0)
+			continue;
 
-			model_body_c *body = new model_body_c();
-			body->name       = std::string(bpart->name) + "_mesh" + std::to_string(mi);
-			body->skin_index = (skin_ref < (int)mdl->skins.size()) ? skin_ref : 0;
-
-			// The texture dimensions are needed to normalise UVs
-			int texW = 1, texH = 1;
-			if (body->skin_index < (int)mdl->skins.size())
+		for (int mi = 0; mi < num_meshes; mi++)
+		{
+			size_t mesh_offset = (size_t)ofs_meshes + (size_t)mi * sizeof(hlmdl_mesh_t);
+			s32_t num_triangles = 0;
+			s32_t ofs_commands = 0;
+			s32_t skin_ref = 0;
+			if (!reader.read_s32(mesh_offset + offsetof(hlmdl_mesh_t, num_tris),
+			                     num_triangles) ||
+				!reader.read_s32(mesh_offset + offsetof(hlmdl_mesh_t, ofs_tris),
+				                 ofs_commands) ||
+				!reader.read_s32(mesh_offset + offsetof(hlmdl_mesh_t, skin_ref), skin_ref) ||
+				num_triangles < 0 || ofs_commands < 0 ||
+				skin_ref < 0 || skin_ref >= num_skinrefs)
 			{
-				texW = mdl->skins[body->skin_index]->width;
-				texH = mdl->skins[body->skin_index]->height;
+				I_Warning("HLMDL: invalid mesh table\n");
+				return NULL;
 			}
-			float invW = (texW > 0) ? (1.0f / (float)texW) : 1.0f;
-			float invH = (texH > 0) ? (1.0f / (float)texH) : 1.0f;
+			if (num_triangles == 0)
+				continue;
 
-			// Collect unique verts and build triangles
-			// The trivert stream uses negative 'vert_idx' as a
-			// command word to begin a new strip/fan.
-			std::vector<model_vert_c> canon_verts;
-			std::vector<model_tri_c>  tris;
+			std::unique_ptr<model_body_c> body(new model_body_c());
+			body->name = bodypart_name + "_mesh" + std::to_string(mi);
+			body->skin_index = default_skin_family[(size_t)skin_ref];
+			float inverse_width = 1.0f / (float)mdl->skins[body->skin_index]->width;
+			float inverse_height = 1.0f / (float)mdl->skins[body->skin_index]->height;
 
-			auto emit_vert = [&](const hlmdl_trivert_t &tv) -> u16_t
+			std::vector<model_vert_c> canonical_vertices;
+			std::vector<model_tri_c> triangles;
+			size_t command_offset = (size_t)ofs_commands;
+			int emitted_triangles = 0;
+			bool terminated = false;
+
+			while (!terminated)
 			{
-				int vi = EPI_LE_S16(tv.vert_idx);
-				int ni = EPI_LE_S16(tv.norm_idx);
-				int s  = EPI_LE_S16(tv.s);
-				int t  = EPI_LE_S16(tv.t);
-
-				model_vert_c mv;
-				if (vi >= 0 && vi < num_verts)
+				s16_t command = 0;
+				if (!reader.read_s16(command_offset, command))
 				{
-					mv.pos = vec3_c(raw_verts[vi*3+0],
-					                raw_verts[vi*3+1],
-					                raw_verts[vi*3+2]);
+					I_Warning("HLMDL: truncated triangle command stream\n");
+					return NULL;
 				}
-				if (ni >= 0 && ni < num_norms)
+				command_offset += sizeof(command);
+				if (command == 0)
 				{
-					mv.normal = vec3_c(raw_norms[ni*3+0],
-					                   raw_norms[ni*3+1],
-					                   raw_norms[ni*3+2]);
+					terminated = true;
+					continue;
 				}
-				mv.uv = vec2_c((float)s * invW, (float)t * invH);
 
-				canon_verts.push_back(mv);
-				return (u16_t)(canon_verts.size() - 1);
-			};
+				bool is_fan = command < 0;
+				int vertex_count = is_fan ? -(int)command : (int)command;
+				int command_triangles = vertex_count - 2;
+				if (vertex_count < 3 || command_triangles > num_triangles - emitted_triangles ||
+					!reader.span(command_offset, (size_t)vertex_count,
+					             sizeof(hlmdl_trivert_t)))
+				{
+					I_Warning("HLMDL: invalid triangle command\n");
+					return NULL;
+				}
 
-			// Walk the trivert stream
-			const s16_t *tstream = (const s16_t *)(raw.data() + ofs_tris);
-			int tpos = 0;
-			int stream_words = num_triverts * 4; // upper bound
-
-			while (tpos < stream_words)
-			{
-				s16_t cmd = EPI_LE_S16(tstream[tpos++]);
-				if (cmd == 0) break;
-
-				bool is_fan = (cmd < 0);
-				int  count  = is_fan ? -cmd : cmd;
-
-				// Read |count| triverts
 				std::vector<u16_t> strip;
-				strip.reserve((size_t)count);
-
-				for (int i = 0; i < count && tpos + 3 < stream_words; i++, tpos += 4)
+				strip.reserve((size_t)vertex_count);
+				for (int vi = 0; vi < vertex_count; vi++)
 				{
-					hlmdl_trivert_t tv;
-					tv.vert_idx = EPI_LE_S16(tstream[tpos + 0]);
-					tv.norm_idx = EPI_LE_S16(tstream[tpos + 1]);
-					tv.s        = EPI_LE_S16(tstream[tpos + 2]);
-					tv.t        = EPI_LE_S16(tstream[tpos + 3]);
-					strip.push_back(emit_vert(tv));
-				}
+					size_t trivert_offset = command_offset +
+					                        (size_t)vi * sizeof(hlmdl_trivert_t);
+					s16_t vertex_index = 0;
+					s16_t normal_index = 0;
+					s16_t texture_s = 0;
+					s16_t texture_t = 0;
+					if (!reader.read_s16(trivert_offset + offsetof(hlmdl_trivert_t, vert_idx),
+					                     vertex_index) ||
+						!reader.read_s16(trivert_offset + offsetof(hlmdl_trivert_t, norm_idx),
+						                 normal_index) ||
+						!reader.read_s16(trivert_offset + offsetof(hlmdl_trivert_t, s), texture_s) ||
+						!reader.read_s16(trivert_offset + offsetof(hlmdl_trivert_t, t), texture_t) ||
+						vertex_index < 0 || vertex_index >= num_vertices ||
+						normal_index < 0 || normal_index >= num_normals ||
+						canonical_vertices.size() > std::numeric_limits<u16_t>::max())
+					{
+						I_Warning("HLMDL: invalid triangle vertex\n");
+						return NULL;
+					}
 
-				// Convert strip/fan to independent triangles
+					float position[3];
+					float normal[3];
+					size_t position_offset = (size_t)ofs_vertices +
+					                         (size_t)vertex_index * sizeof(float) * 3;
+					size_t normal_offset = (size_t)ofs_normals +
+					                       (size_t)normal_index * sizeof(float) * 3;
+					bool scalars_valid = true;
+					for (int component = 0; component < 3; component++)
+					{
+						scalars_valid = scalars_valid &&
+							reader.read_float(position_offset +
+							                  (size_t)component * sizeof(float),
+							                  position[component]) &&
+							reader.read_float(normal_offset +
+							                  (size_t)component * sizeof(float),
+							                  normal[component]);
+					}
+					if (!scalars_valid)
+					{
+						I_Warning("HLMDL: truncated vertex data\n");
+						return NULL;
+					}
+					for (int component = 0; component < 3; component++)
+					{
+						if (!std::isfinite(position[component]) ||
+							!std::isfinite(normal[component]))
+						{
+							I_Warning("HLMDL: non-finite vertex data\n");
+							return NULL;
+						}
+					}
+
+					model_vert_c vertex;
+					vertex.pos = vec3_c(position[0], position[1], position[2]);
+					vertex.normal = vec3_c(normal[0], normal[1], normal[2]);
+					vertex.uv = vec2_c((float)texture_s * inverse_width,
+					                   (float)texture_t * inverse_height);
+					strip.push_back((u16_t)canonical_vertices.size());
+					canonical_vertices.push_back(vertex);
+				}
+				command_offset += (size_t)vertex_count * sizeof(hlmdl_trivert_t);
+
 				if (is_fan)
 				{
-					// Triangle fan: [0, 1, 2], [0, 2, 3], …
-					for (int i = 2; i < (int)strip.size(); i++)
-						tris.push_back(model_tri_c(strip[0], strip[i-1], strip[i]));
+					for (int index = 2; index < vertex_count; index++)
+						triangles.push_back(model_tri_c(strip[0], strip[index - 1],
+						                                    strip[index]));
 				}
 				else
 				{
-					// Triangle strip: [0,1,2], [2,1,3], [2,3,4], …
-					for (int i = 2; i < (int)strip.size(); i++)
+					for (int index = 2; index < vertex_count; index++)
 					{
-						if (i & 1)
-							tris.push_back(model_tri_c(strip[i-1], strip[i-2], strip[i]));
+						if (index & 1)
+							triangles.push_back(model_tri_c(strip[index - 1], strip[index - 2],
+							                                    strip[index]));
 						else
-							tris.push_back(model_tri_c(strip[i-2], strip[i-1], strip[i]));
+							triangles.push_back(model_tri_c(strip[index - 2], strip[index - 1],
+							                                    strip[index]));
 					}
 				}
+				emitted_triangles += command_triangles;
 			}
 
-			body->tris               = std::move(tris);
-			body->num_verts_per_frame = (int)canon_verts.size();
-
-			int body_idx = (int)mdl->bodies.size();
-			mdl->bodies.push_back(body);
-
-			// Attach to base frame
-			model_frame_c &frame = mdl->frames[0];
-			while ((int)frame.verts.size() <= body_idx)
-				frame.verts.push_back(std::vector<model_vert_c>());
-			frame.verts[body_idx] = std::move(canon_verts);
-
-			// Update frame bounding box
-			for (const model_vert_c &mv : frame.verts[body_idx])
+			if (emitted_triangles != num_triangles)
 			{
-				if (frame.verts[body_idx].size() == 1)
-					frame.bbox = bbox3_c(mv.pos);
+				I_Warning("HLMDL: triangle count does not match command stream\n");
+				return NULL;
+			}
+
+			body->tris = std::move(triangles);
+			body->num_verts_per_frame = (int)canonical_vertices.size();
+			int body_index = (int)mdl->bodies.size();
+			mdl->bodies.push_back(body.get());
+			body.release();
+
+			model_frame_c &frame = mdl->frames[0];
+			frame.verts.push_back(std::move(canonical_vertices));
+			for (const model_vert_c &vertex : frame.verts[(size_t)body_index])
+			{
+				if (!bbox_initialised)
+				{
+					frame.bbox = bbox3_c(vertex.pos);
+					bbox_initialised = true;
+				}
 				else
-					frame.bbox.Insert(mv.pos);
+				{
+					frame.bbox.Insert(vertex.pos);
+				}
 			}
 		}
 	}
 
-	return mdl;
+	if (mdl->bodies.empty())
+	{
+		I_Warning("HLMDL: no renderable meshes\n");
+		return NULL;
+	}
+
+	return mdl.release();
 }
 
 } // namespace epi

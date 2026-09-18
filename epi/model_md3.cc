@@ -164,12 +164,12 @@ model_data_c *MD3Loader::Load(file_c *f)
 
 	if (hdr.magic != MD3_MAGIC)
 	{
-		I_Warning("MD3: bad magic 0x%08x\n", hdr.magic);
+		I_Warning("MD3: bad magic 0x%08lx\n", static_cast<unsigned long>(hdr.magic));
 		return NULL;
 	}
 	if (hdr.version != MD3_VERSION)
 	{
-		I_Warning("MD3: unsupported version %d\n", hdr.version);
+		I_Warning("MD3: unsupported version %ld\n", static_cast<long>(hdr.version));
 		return NULL;
 	}
 	if (hdr.num_frames <= 0 || hdr.num_surfaces <= 0)
